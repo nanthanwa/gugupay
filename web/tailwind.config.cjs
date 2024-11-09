@@ -6,7 +6,9 @@ module.exports = {
     extend: {}
   },
   darkMode: ['class'], // media for system dark mode
-  plugins: [require('daisyui')],
+  plugins: [
+    require('daisyui'),
+  ],
   daisyui: {
     styled: true,
     base: true,

@@ -19,6 +19,6 @@
   },
   "dependencies": {
     "@mysten/bcs": "^1.1.0",
-    "@mysten/sui": "^1.14.2"
+    "@mysten/sui": "1.12.0"
   }
 }

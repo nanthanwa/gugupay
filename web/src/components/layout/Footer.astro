@@ -1,14 +1,17 @@
 ---
-import { githubLink } from '../../configs';
-import Github from '../icons/Github.astro';
+import { githubLink } from "@utils/configs";
+import Github from "@icons/Github.astro";
 ---
 
 <footer class="p-4 sm:p-6">
   <div class="container mx-auto">
     <div class="sm:flex sm:items-center sm:justify-between">
-      <span class="text-sm sm:text-center">© 2024 <a href="https://gugupay.io" class="hover:underline">Gugupay™</a>. All Rights Reserved.
-      </span>
-      <div class="flex mt-4 space-x-6 sm:justify-center sm:mt-0">
+      <p class="text-center text-sm">
+        © 2024 <a href="https://gugupay.io" class="hover:underline"
+          >Gugupay™</a
+        >. All Rights Reserved.
+      </p>
+      <div class="mt-4 flex justify-center space-x-4 sm:mt-0">
         <a
           aria-label="Github"
           target="_blank"

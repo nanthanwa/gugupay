@@ -196,7 +196,7 @@ module gugupay::gugupay {
         invoice.is_paid = true;
 
         // Transfer payment to contract treasury
-        transfer::public_transfer(payment, tx_context::sender(ctx));
+        transfer::public_transfer(payment, tx_context::sender(ctx)); // TODO: change to contract treasury
     }
 
     fun mint_merchant_nft(

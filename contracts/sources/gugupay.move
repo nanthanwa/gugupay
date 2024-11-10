@@ -39,7 +39,7 @@ module gugupay::gugupay {
         amount: u64,
         is_paid: bool,
         deadline: u64,
-        owner: address
+        merchant_owner: address
     }
 
     public struct GugupayState has key {
@@ -56,7 +56,8 @@ module gugupay::gugupay {
         name: String,
         symbol: String,
         merchant_id: u64,
-        owner: address
+        owner: address,
+        balance: u64
     }
 
     public struct InvoiceNFT has key, store {
@@ -134,33 +135,33 @@ module gugupay::gugupay {
 
     public entry fun create_invoice(
         state: &mut GugupayState,
-        merchant_id: u64,
+        merchant_nft: &MerchantNFT,
         description: vector<u8>,
         amount: u64,
         clock: &Clock,
         ctx: &mut TxContext
     ) {
-        let merchant = table::borrow(&state.merchants, merchant_id);
-        assert!(merchant.owner == tx_context::sender(ctx), ENotOwner);
+        // Verify the caller owns the merchant NFT
+        assert!(merchant_nft.owner == tx_context::sender(ctx), ENotOwner);
 
         let invoice_id = state.invoice_count + 1;
         let invoice = Invoice {
             id: object::new(ctx),
             invoice_id,
-            merchant_id,
+            merchant_id: merchant_nft.merchant_id,
             description: string::utf8(description),
             amount,
             is_paid: false,
             deadline: clock::timestamp_ms(clock) + 86400000,
-            owner: tx_context::sender(ctx)
+            merchant_owner: merchant_nft.owner
         };
 
         table::add(&mut state.invoices, invoice_id, invoice);
         state.invoice_count = invoice_id;
 
-        // Mint and transfer NFT to invoice creator
+        // Mint and transfer NFT to merchant owner
         let nft = mint_invoice_nft(invoice_id, ctx);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::transfer(nft, merchant_nft.owner);
 
         // Emit event
         event::emit(InvoiceCreated {
@@ -172,6 +173,7 @@ module gugupay::gugupay {
     public entry fun pay_invoice(
         state: &mut GugupayState,
         invoice_id: u64,
+        merchant_nft: &mut MerchantNFT,
         payment: Coin<SUI>,
         clock: &Clock,
         ctx: &mut TxContext
@@ -181,19 +183,18 @@ module gugupay::gugupay {
         assert!(!invoice.is_paid, EInvoiceAlreadyPaid);
         assert!(invoice.deadline > clock::timestamp_ms(clock), EInvoiceExpired);
         assert!(coin::value(&payment) >= invoice.amount, EInsufficientPayment);
+        assert!(merchant_nft.merchant_id == invoice.merchant_id, ENotOwner);
+        assert!(merchant_nft.owner == invoice.merchant_owner, ENotOwner);
 
-        // Update merchant balance
-        let merchant = table::borrow(&state.merchants, invoice.merchant_id);
-        let current_balance = *table::borrow_mut(&mut state.merchant_balances, merchant.owner);
-        table::add(&mut state.merchant_balances, merchant.owner, current_balance + invoice.amount);
-
+        // Update merchant NFT balance
+        merchant_nft.balance = merchant_nft.balance + invoice.amount;
         invoice.is_paid = true;
-        
-        // Transfer payment to contract
-        transfer::public_transfer(payment, merchant.owner);
+
+        // Transfer payment to contract treasury
+        transfer::public_transfer(payment, tx_context::sender(ctx));
     }
 
-    public fun mint_merchant_nft(
+    fun mint_merchant_nft(
         merchant_id: u64,
         ctx: &mut TxContext
     ): MerchantNFT {
@@ -202,11 +203,12 @@ module gugupay::gugupay {
             name: string::utf8(b"GugupayM"),
             symbol: string::utf8(b"GUGUMERCHANT"),
             merchant_id,
-            owner: tx_context::sender(ctx)
+            owner: tx_context::sender(ctx),
+            balance: 0
         }
     }
 
-    public fun mint_invoice_nft(
+    fun mint_invoice_nft(
         invoice_id: u64,
         ctx: &mut TxContext
     ): InvoiceNFT {
@@ -219,13 +221,63 @@ module gugupay::gugupay {
         }
     }
 
-    public entry fun burn_merchant_nft(nft: MerchantNFT) {
-        let MerchantNFT { id, name: _, symbol: _, merchant_id: _, owner: _ } = nft;
+    public entry fun delete_merchant(
+        state: &GugupayState,
+        merchant_nft: MerchantNFT,
+        ctx: &mut TxContext
+    ) {
+        // Verify the caller owns the merchant NFT
+        assert!(merchant_nft.owner == tx_context::sender(ctx), ENotOwner);
+        
+        // Verify merchant exists and matches the NFT
+        let merchant = table::borrow(&state.merchants, merchant_nft.merchant_id);
+        assert!(merchant.owner == tx_context::sender(ctx), ENotOwner);
+        
+        let MerchantNFT { 
+            id, 
+            name: _, 
+            symbol: _, 
+            merchant_id: _, 
+            owner: _, 
+            balance: _ 
+        } = merchant_nft;
         object::delete(id);
     }
 
-    public entry fun burn_invoice_nft(nft: InvoiceNFT) {
-        let InvoiceNFT { id, name: _, symbol: _, invoice_id: _, owner: _ } = nft;
+    public entry fun delete_invoice(
+        state: &GugupayState,
+        merchant_nft: &MerchantNFT,
+        invoice_nft: InvoiceNFT,
+        ctx: &mut TxContext
+    ) {
+        let invoice = table::borrow(&state.invoices, invoice_nft.invoice_id);
+        
+        // Verify the caller owns the merchant NFT and it matches the invoice's merchant
+        assert!(merchant_nft.owner == tx_context::sender(ctx), ENotOwner);
+        assert!(merchant_nft.merchant_id == invoice.merchant_id, ENotOwner);
+        
+        let InvoiceNFT { id, name: _, symbol: _, invoice_id: _, owner: _ } = invoice_nft;
         object::delete(id);
+    }
+
+    public entry fun withdraw_sui(
+        merchant_nft: &mut MerchantNFT,
+        treasury: &mut Coin<SUI>,
+        ctx: &mut TxContext
+    ) {
+        // Verify the caller is the merchant NFT owner
+        assert!(merchant_nft.owner == tx_context::sender(ctx), ENotOwner);
+        
+        // Verify there's balance to withdraw
+        assert!(merchant_nft.balance > 0, EInsufficientBalance);
+        
+        // Split coins from treasury
+        let payment = coin::split(treasury, merchant_nft.balance, ctx);
+        
+        // Reset merchant NFT balance
+        merchant_nft.balance = 0;
+        
+        // Transfer to merchant owner
+        transfer::public_transfer(payment, merchant_nft.owner);
     }
 } 

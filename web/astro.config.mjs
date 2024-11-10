@@ -5,11 +5,21 @@ import svelte from '@astrojs/svelte';
 
 // https://astro.build/config
 export default defineConfig({
-    outDir: './build',
     output: 'static',
     compressHTML: true,
     integrations: [tailwind(), svelte()],
     vite: {
-      plugins: []
+      plugins: [],
+      resolve: {
+        alias: {
+          "@client": "/src/client",
+          "@components": "/src/components",
+          "@icons": "/src/components/icons",
+          "@layouts": "/src/layouts",
+          "@stores": "/src/stores",
+          "@typedef": "/src/typedef",
+          "@utils": "/src/utils",
+        },
+      },
     }
 });

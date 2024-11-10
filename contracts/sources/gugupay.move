@@ -100,6 +100,12 @@ module gugupay::gugupay {
         transfer::share_object(state);
     }
 
+    // Add test-only init function
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(ctx)
+    }
+
     public entry fun create_merchant(
         state: &mut GugupayState,
         name: vector<u8>,
@@ -278,5 +284,26 @@ module gugupay::gugupay {
         
         // Transfer to merchant owner
         transfer::public_transfer(payment, merchant_nft.owner);
+    }
+
+    // Add public accessor functions
+    public fun merchant_id(nft: &MerchantNFT): u64 {
+        nft.merchant_id
+    }
+
+    public fun merchant_owner(nft: &MerchantNFT): address {
+        nft.owner
+    }
+
+    public fun merchant_balance(nft: &MerchantNFT): u64 {
+        nft.balance
+    }
+
+    public fun invoice_id(nft: &InvoiceNFT): u64 {
+        nft.invoice_id
+    }
+
+    public fun invoice_owner(nft: &InvoiceNFT): address {
+        nft.owner
     }
 } 

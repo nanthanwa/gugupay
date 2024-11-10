@@ -5,16 +5,39 @@ export const githubLink = 'https://github.com/gugupay/gugupay';
 export const network: "mainnet" | "testnet" | "devnet" | "localnet" =
   import.meta.env.PUBLIC_NETWORK;
 
-
-export const NAVIGATION_MENU = {
-  "Learn": {
-    "What is Gugupay?": "/docs/learn/what-is-gugupay",
-    "Tutorial": "/docs/learn/tutorial",
-    "FAQ": "/docs/learn/faq",
+export const NAVIGATION_MENU = [
+  {
+    label: "Learn",
+    items: [
+      {
+        label: "What is Gugupay?",
+        link: "/docs/learn/what-is-gugupay",
+      },
+      {
+        label: "Tutorial",
+        link: "/docs/learn/tutorial",
+      },
+      {
+        label: "FAQ",
+        link: "/docs/learn/faq",
+      },
+    ],
   },
-  "Developer": {
-    "Gugupay SDK": "/docs/developer/sdk",
-    "API Reference": "/docs/developer/api-reference",
-    "GitHub": githubLink,
+  {
+    label: "Developer",
+    items: [
+      {
+        label: "Integration SDK",
+        link: "/docs/developer/sdk",
+      },
+      {
+        label: "API Reference",
+        link: "/docs/developer/api-reference",
+      },
+      {
+        label: "GitHub",
+        link: githubLink,
+      },
+    ],
   },
-};
+]

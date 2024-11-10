@@ -1,10 +1,9 @@
 <script lang="ts">
-  import {
+  import SuiModule, {
     connectWithModal,
     disconnect,
     account,
-    SuiModule,
-  } from "@components/wallet/SuiModule";
+  } from "@components/wallet/SuiModule.svelte";
 
   interface IProps {
     class?: string;

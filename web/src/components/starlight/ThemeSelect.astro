@@ -1,0 +1,8 @@
+---
+import type { Props } from "@astrojs/starlight/props";
+import ThemeSelectDefault from "@astrojs/starlight/components/ThemeSelect.astro";
+import DashboardButton from "@components/common/DashboardButton.astro";
+---
+
+<ThemeSelectDefault {...Astro.props}><slot /></ThemeSelectDefault>
+<DashboardButton />

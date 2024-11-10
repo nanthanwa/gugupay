@@ -1,8 +1,8 @@
 ---
 import { NAVIGATION_MENU } from "@utils/configs";
 import SunMoon from "@icons/SunMoon.astro";
-import ConnectButton from "@components/wallet/ConnectButton/ConnectButton.svelte";
-import { SuiModule } from "@components/wallet/SuiModule";
+import ConnectButton from "@components/wallet/ConnectButton.svelte";
+import DashboardButton from "@components/common/DashboardButton.astro";
 
 interface Props {
   isWallet: boolean;
@@ -29,12 +29,7 @@ const { isWallet } = Astro.props;
             }
             return (
               <>
-                <a
-                  href="/app"
-                  class="inline-flex items-center justify-center rounded-lg border px-3 py-2 text-center text-base font-medium focus:ring-4 lg:px-5 lg:py-2.5"
-                >
-                  Dashboard
-                </a>
+                <DashboardButton />
                 <button
                   data-collapse-toggle="mobile-menu-2"
                   type="button"
@@ -78,22 +73,24 @@ const { isWallet } = Astro.props;
         id="mobile-menu-2"
       >
         {
-          Object.entries(NAVIGATION_MENU).map(([title1, val1]) => {
+          NAVIGATION_MENU.map(({ label, items }) => {
             return (
               <div class="dropdown dropdown-hover">
                 <label tabindex="0" class="btn">
-                  {title1}
+                  {label}
                 </label>
                 <ul
                   tabindex="0"
                   class="menu dropdown-content z-[1] w-52 rounded-box bg-base-100 p-2 shadow"
                 >
-                  {Object.entries(val1).map(([title2, link]) => {
-                    const target = link.startsWith("http") ? "_blank" : "_self";
+                  {items.map(({ label: label2, link: link2 }) => {
+                    const target = link2.startsWith("http")
+                      ? "_blank"
+                      : "_self";
                     return (
                       <li>
-                        <a href={link} target={target}>
-                          {title2}
+                        <a href={link2} target={target}>
+                          {label2}
                         </a>
                       </li>
                     );

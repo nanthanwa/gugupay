@@ -3,11 +3,32 @@ import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import svelte from '@astrojs/svelte';
 
+import starlight from "@astrojs/starlight";
+import { githubLink, NAVIGATION_MENU } from './src/utils/configs';
+
 // https://astro.build/config
 export default defineConfig({
+    site: 'https://gugupay.io',
     output: 'static',
     compressHTML: true,
-    integrations: [tailwind(), svelte()],
+    integrations: [
+      svelte(),
+      starlight({
+        logo: {
+          src: "./public/logo.svg",
+        },
+        title: 'Documentation',
+        description: 'Documentation for GuguPay',
+        social: {
+          github: githubLink,
+        },
+        sidebar: NAVIGATION_MENU,
+        components: {
+          ThemeSelect: "/src/components/starlight/ThemeSelect.astro",
+        },
+      }),
+      tailwind(),
+    ],
     vite: {
       plugins: [],
       resolve: {

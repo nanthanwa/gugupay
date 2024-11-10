@@ -6,7 +6,7 @@
     changeWallet,
   } from "@stores/walletStore";
   import { shortAddress, suiToString } from "@utils/sui";
-  import ConnectWalletButton from "./ConnectWalletButton.svelte";
+  import ConnectButton from "./ConnectButton.svelte";
 </script>
 
 {#if $walletStateAtom.wallets.length > 0}
@@ -81,5 +81,5 @@
     </div>
   </div>
 {:else}
-  <ConnectWalletButton />
+  <ConnectButton />
 {/if}

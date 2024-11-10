@@ -64,5 +64,108 @@ module gugupay::gugupay {
         amount: u64
     }
 
-    // Rest of the code remains the same...
+    // ======== Functions ========
+    fun init(ctx: &mut TxContext) {
+        let admin_cap = AdminCap {
+            id: object::new(ctx)
+        };
+        
+        let state = GugupayState {
+            id: object::new(ctx),
+            merchant_count: 0,
+            invoice_count: 0,
+            merchants: table::new(ctx),
+            invoices: table::new(ctx),
+            merchant_balances: table::new(ctx)
+        };
+
+        transfer::transfer(admin_cap, tx_context::sender(ctx));
+        transfer::share_object(state);
+    }
+
+    public entry fun create_merchant(
+        state: &mut GugupayState,
+        name: vector<u8>,
+        description: vector<u8>,
+        logo: vector<u8>,
+        ctx: &mut TxContext
+    ) {
+        let merchant_id = state.merchant_count + 1;
+        let merchant = Merchant {
+            id: object::new(ctx),
+            merchant_id,
+            name: string::utf8(name),
+            description: string::utf8(description),
+            logo: string::utf8(logo),
+            owner: tx_context::sender(ctx)
+        };
+
+        table::add(&mut state.merchants, merchant_id, merchant);
+        state.merchant_count = merchant_id;
+
+        // Emit event
+        event::emit(MerchantCreated {
+            merchant_id,
+            name: string::utf8(name),
+            description: string::utf8(description),
+            logo: string::utf8(logo)
+        });
+    }
+
+    public entry fun create_invoice(
+        state: &mut GugupayState,
+        merchant_id: u64,
+        description: vector<u8>,
+        amount: u64,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let merchant = table::borrow(&state.merchants, merchant_id);
+        assert!(merchant.owner == tx_context::sender(ctx), ENotOwner);
+
+        let invoice_id = state.invoice_count + 1;
+        let invoice = Invoice {
+            id: object::new(ctx),
+            invoice_id,
+            merchant_id,
+            description: string::utf8(description),
+            amount,
+            is_paid: false,
+            deadline: clock::timestamp_ms(clock) + 86400000, // 24 hours in milliseconds
+            owner: tx_context::sender(ctx)
+        };
+
+        table::add(&mut state.invoices, invoice_id, invoice);
+        state.invoice_count = invoice_id;
+
+        // Emit event
+        event::emit(InvoiceCreated {
+            invoice_id,
+            amount
+        });
+    }
+
+    public entry fun pay_invoice(
+        state: &mut GugupayState,
+        invoice_id: u64,
+        payment: Coin<SUI>,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let invoice = table::borrow_mut(&mut state.invoices, invoice_id);
+        
+        assert!(!invoice.is_paid, EInvoiceAlreadyPaid);
+        assert!(invoice.deadline > clock::timestamp_ms(clock), EInvoiceExpired);
+        assert!(coin::value(&payment) >= invoice.amount, EInsufficientPayment);
+
+        // Update merchant balance
+        let merchant = table::borrow(&state.merchants, invoice.merchant_id);
+        let current_balance = *table::borrow_mut(&mut state.merchant_balances, merchant.owner);
+        table::add(&mut state.merchant_balances, merchant.owner, current_balance + invoice.amount);
+
+        invoice.is_paid = true;
+        
+        // Transfer payment to contract
+        transfer::public_transfer(payment, merchant.owner);
+    }
 } 

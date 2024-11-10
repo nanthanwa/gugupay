@@ -71,6 +71,23 @@ module gugupay::gugupay_tests {
         ts::next_tx(&mut scenario, MERCHANT);
         {
             let mut state = ts::take_shared<GugupayState>(&scenario);
+            let ctx = ts::ctx(&mut scenario);
+
+            gugupay::create_merchant(
+                &mut state,
+                MERCHANT_NAME,
+                MERCHANT_DESC,
+                MERCHANT_LOGO,
+                ctx
+            );
+
+            ts::return_shared(state);
+        };
+
+        // Then create invoice
+        ts::next_tx(&mut scenario, MERCHANT);
+        {
+            let mut state = ts::take_shared<GugupayState>(&scenario);
             let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
             let clock = clock::create_for_testing(ts::ctx(&mut scenario));
             let ctx = ts::ctx(&mut scenario);
@@ -147,7 +164,7 @@ module gugupay::gugupay_tests {
         ts::next_tx(&mut scenario, CUSTOMER);
         {
             let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
+            let mut merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
             let clock = clock::create_for_testing(ts::ctx(&mut scenario));
             let ctx = ts::ctx(&mut scenario);
 
@@ -204,7 +221,7 @@ module gugupay::gugupay_tests {
         ts::next_tx(&mut scenario, MERCHANT);
         {
             let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
+            let mut merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
             let clock = clock::create_for_testing(ts::ctx(&mut scenario));
             let ctx = ts::ctx(&mut scenario);
 
@@ -237,8 +254,8 @@ module gugupay::gugupay_tests {
         // Merchant withdraws balance
         ts::next_tx(&mut scenario, MERCHANT);
         {
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let treasury = ts::take_from_sender<Coin<SUI>>(&scenario);
+            let mut merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
+            let mut treasury = ts::take_from_sender<Coin<SUI>>(&scenario);
             let ctx = ts::ctx(&mut scenario);
 
             gugupay::withdraw_sui(
@@ -286,7 +303,7 @@ module gugupay::gugupay_tests {
             let clock = clock::create_for_testing(ts::ctx(&mut scenario));
             let ctx = ts::ctx(&mut scenario);
 
-            // This should fail
+            // This should fail with ENotOwner (0)
             gugupay::create_invoice(
                 &mut state,
                 &merchant_nft,

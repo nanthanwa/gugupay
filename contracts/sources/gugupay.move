@@ -184,7 +184,6 @@ module gugupay::gugupay {
         assert!(invoice.deadline > clock::timestamp_ms(clock), EInvoiceExpired);
         assert!(coin::value(&payment) >= invoice.amount, EInsufficientPayment);
         assert!(merchant_nft.merchant_id == invoice.merchant_id, ENotOwner);
-        assert!(merchant_nft.owner == invoice.merchant_owner, ENotOwner);
 
         // Update merchant NFT balance
         merchant_nft.balance = merchant_nft.balance + invoice.amount;

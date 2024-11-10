@@ -51,6 +51,22 @@ module gugupay::gugupay {
         merchant_balances: Table<address, u64>
     }
 
+    public struct MerchantNFT has key, store {
+        id: UID,
+        name: String,
+        symbol: String,
+        merchant_id: u64,
+        owner: address
+    }
+
+    public struct InvoiceNFT has key, store {
+        id: UID,
+        name: String,
+        symbol: String,
+        invoice_id: u64,
+        owner: address
+    }
+
     // ======== Events ========
     public struct MerchantCreated has copy, drop {
         merchant_id: u64,
@@ -103,6 +119,10 @@ module gugupay::gugupay {
         table::add(&mut state.merchants, merchant_id, merchant);
         state.merchant_count = merchant_id;
 
+        // Mint and transfer NFT to merchant
+        let nft = mint_merchant_nft(merchant_id, ctx);
+        transfer::transfer(nft, tx_context::sender(ctx));
+
         // Emit event
         event::emit(MerchantCreated {
             merchant_id,
@@ -131,12 +151,16 @@ module gugupay::gugupay {
             description: string::utf8(description),
             amount,
             is_paid: false,
-            deadline: clock::timestamp_ms(clock) + 86400000, // 24 hours in milliseconds
+            deadline: clock::timestamp_ms(clock) + 86400000,
             owner: tx_context::sender(ctx)
         };
 
         table::add(&mut state.invoices, invoice_id, invoice);
         state.invoice_count = invoice_id;
+
+        // Mint and transfer NFT to invoice creator
+        let nft = mint_invoice_nft(invoice_id, ctx);
+        transfer::transfer(nft, tx_context::sender(ctx));
 
         // Emit event
         event::emit(InvoiceCreated {
@@ -167,5 +191,41 @@ module gugupay::gugupay {
         
         // Transfer payment to contract
         transfer::public_transfer(payment, merchant.owner);
+    }
+
+    public fun mint_merchant_nft(
+        merchant_id: u64,
+        ctx: &mut TxContext
+    ): MerchantNFT {
+        MerchantNFT {
+            id: object::new(ctx),
+            name: string::utf8(b"GugupayM"),
+            symbol: string::utf8(b"GUGUMERCHANT"),
+            merchant_id,
+            owner: tx_context::sender(ctx)
+        }
+    }
+
+    public fun mint_invoice_nft(
+        invoice_id: u64,
+        ctx: &mut TxContext
+    ): InvoiceNFT {
+        InvoiceNFT {
+            id: object::new(ctx),
+            name: string::utf8(b"GugupayI"),
+            symbol: string::utf8(b"GUGUINVOICE"),
+            invoice_id,
+            owner: tx_context::sender(ctx)
+        }
+    }
+
+    public entry fun burn_merchant_nft(nft: MerchantNFT) {
+        let MerchantNFT { id, name: _, symbol: _, merchant_id: _, owner: _ } = nft;
+        object::delete(id);
+    }
+
+    public entry fun burn_invoice_nft(nft: InvoiceNFT) {
+        let InvoiceNFT { id, name: _, symbol: _, invoice_id: _, owner: _ } = nft;
+        object::delete(id);
     }
 } 

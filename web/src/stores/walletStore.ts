@@ -16,7 +16,7 @@ suiSystemStateAtom.subscribe((suiSystemState) => {
   });
 });
 
-const SUI_WALLET_NAME = "Sui Wallet";
+// const SUI_WALLET_NAME = "Sui Wallet";
 const defaultWallet = {
   wallets: [],
   walletIdx: 0,

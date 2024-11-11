@@ -1,41 +1,38 @@
 <script lang="ts">
   import { loadingWalletDataAtom } from "@stores/loadingStore";
-  import {
-    disconnectWallet,
-    walletStateAtom,
-    changeWallet,
-  } from "@stores/walletStore";
   import { shortAddress, suiToString } from "@utils/sui";
   import ConnectButton from "./ConnectButton.svelte";
+  import SuiModule, {
+    disconnectWallet,
+    selectWalletAccount,
+    walletAccounts,
+    walletAccount,
+    walletAccountIdx,
+  } from "./SuiModule.svelte";
 </script>
 
-{#if $walletStateAtom.wallets.length > 0}
+<SuiModule />
+{#if walletAccount.value}
   <div
-    class="dropdown dropdown-bottom dropdown-end w-72 {$loadingWalletDataAtom &&
+    class="dropdown dropdown-bottom dropdown-end w-48 lg:w-64 {$loadingWalletDataAtom &&
       'pointer-events-none animate-pulse blur-sm'}"
   >
     <button
-      class="btn bg-base-100 border-base-300 flex w-full justify-between rounded-full"
+      class="btn btn-sm lg:btn-md bg-base-100 border-base-300 m-0 flex w-full justify-between rounded-full"
     >
-      <div>
-        {shortAddress(
-          $walletStateAtom.wallets[$walletStateAtom.walletIdx].walletAccount
-            .address,
-        )}
+      <div class="text-xs lg:text-base">
+        {shortAddress(walletAccount.value.walletAccount.address)}
       </div>
-      <div class="flex flex-col text-xs">
-        <div class="flex gap-x-2">
+      <div class="flex flex-col text-[0.5rem] lg:text-xs">
+        <div class="flex gap-x-1 lg:gap-x-2">
           <div class="text-right">
-            {suiToString(
-              $walletStateAtom.wallets[$walletStateAtom.walletIdx].suiBalance,
-            )}
+            {suiToString(walletAccount.value.suiBalance)}
           </div>
           <div class="text-left">SUI</div>
         </div>
-        <div class="flex gap-x-2">
+        <div class="flex gap-x-1 lg:gap-x-2">
           <div class="text-right">
-            {$walletStateAtom.wallets[$walletStateAtom.walletIdx].merchantObjs
-              .length}
+            {walletAccount.value.merchantObjs.length}
           </div>
           <div class="text-left">Merchant</div>
         </div>
@@ -44,25 +41,25 @@
     <div
       class="dropdown-content text-primary-content z-[1] flex w-full flex-col gap-1 pt-1"
     >
-      {#each $walletStateAtom.wallets as wallet, index}
-        {#if index !== $walletStateAtom.walletIdx}
+      {#each walletAccounts.value as wallet, index}
+        {#if index !== walletAccountIdx.value}
           <button
-            class="btn bg-base-100 border-base-300 flex w-full justify-between rounded-full"
+            class="btn btn-sm lg:btn-md bg-base-100 border-base-300 m-0 flex w-full justify-between rounded-full"
             onclick={() => {
-              changeWallet(index);
+              selectWalletAccount(index);
             }}
           >
-            <div>
+            <div class="text-xs lg:text-base">
               {shortAddress(wallet.walletAccount.address)}
             </div>
-            <div class="flex flex-col text-xs">
-              <div class="flex gap-x-2">
+            <div class="flex flex-col text-[0.5rem] lg:text-xs">
+              <div class="flex gap-x-1 lg:gap-x-2">
                 <div class="text-right">
                   {suiToString(wallet.suiBalance)}
                 </div>
                 <div class="text-left">SUI</div>
               </div>
-              <div class="flex gap-x-2">
+              <div class="flex gap-x-1 lg:gap-x-2">
                 <div class="text-right">
                   {wallet.merchantObjs.length}
                 </div>
@@ -74,9 +71,7 @@
       {/each}
       <button
         class="btn btn-error border-base-300 w-full rounded-full"
-        onclick={async () => {
-          await disconnectWallet();
-        }}>Disconnect</button
+        onclick={disconnectWallet}>Disconnect</button
       >
     </div>
   </div>

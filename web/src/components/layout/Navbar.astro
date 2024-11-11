@@ -1,7 +1,7 @@
 ---
 import { NAVIGATION_MENU } from "@utils/configs";
 import SunMoon from "@icons/SunMoon.astro";
-import ConnectButton from "@components/wallet/ConnectButton.svelte";
+import ConnectDropdown from "@components/wallet/ConnectDropdown.svelte";
 import DashboardButton from "@components/common/DashboardButton.astro";
 
 interface Props {
@@ -21,21 +21,20 @@ const { isWallet } = Astro.props;
         >
       </a>
       <div class="flex items-center lg:order-2">
-        <div class="mr-4 flex items-center"><SunMoon /></div>
+        <div class="mr-4 hidden items-center lg:flex"><SunMoon /></div>
         {
           () => {
             if (isWallet) {
-              return <ConnectButton client:load client:only="svelte" />;
+              return <ConnectDropdown client:load client:only="svelte" />;
             }
             return (
               <>
                 <DashboardButton />
                 <button
-                  data-collapse-toggle="mobile-menu-2"
                   type="button"
                   class="ml-1 inline-flex items-center rounded-lg p-2 text-sm focus:outline-none focus:ring-2 lg:hidden"
-                  aria-controls="mobile-menu-2"
-                  aria-expanded="false"
+                  aria-controls="mobile-menu"
+                  id="mobile-menu-button"
                 >
                   <span class="sr-only">Open main menu</span>
                   <svg
@@ -69,8 +68,8 @@ const { isWallet } = Astro.props;
         }
       </div>
       <div
-        class="hidden w-full items-center justify-between lg:order-1 lg:flex lg:w-auto"
-        id="mobile-menu-2"
+        class="hidden w-full items-center justify-start lg:order-1 lg:flex lg:w-auto"
+        id="mobile-menu"
       >
         {
           NAVIGATION_MENU.map(({ label, items }) => {
@@ -104,3 +103,20 @@ const { isWallet } = Astro.props;
     </div>
   </nav>
 </header>
+
+<script is:inline>
+  const mobileMenu = document.getElementById("mobile-menu");
+  const mobileMenuButton = document.getElementById("mobile-menu-button");
+
+  if (mobileMenuButton) {
+    mobileMenuButton.onclick = () => {
+      if (mobileMenu.classList.contains("hidden")) {
+        mobileMenu.classList.remove("hidden");
+        mobileMenu.classList.add("flex");
+      } else {
+        mobileMenu.classList.remove("flex");
+        mobileMenu.classList.add("hidden");
+      }
+    };
+  }
+</script>

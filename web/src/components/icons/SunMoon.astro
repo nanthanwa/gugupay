@@ -1,8 +1,4 @@
-<button
-  id="darkmode-toggle"
-  class="swap swap-rotate"
-  aria-label="dark mode"
->
+<button id="darkmode-toggle" class="swap swap-rotate" aria-label="dark mode">
   <div class="swap-on">
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -38,44 +34,47 @@
 </button>
 
 <script is:inline>
-const localStorageKey = "darkMode";
-let localDarkMode = localStorage.getItem(localStorageKey);
-let darkMode = false;
-// initial dark mode from local storage or media
-switch (localDarkMode) {
-  case "true":
-    darkMode = true;
-    break;
-  case "false":
-    darkMode = false;
-    break;
-  case null:
-    darkMode =
-      window?.matchMedia?.("(prefers-color-scheme:dark)")?.matches || false;
-}
-
-const button = document.getElementById("darkmode-toggle");
-const setToggleClass = (darkMode) => {
-  if (darkMode) {
-    button.classList.add("swap-active");
-  } else {
-    button.classList.remove("swap-active");
+  const localStorageKey = "darkMode";
+  let localDarkMode = localStorage.getItem(localStorageKey);
+  let darkMode = false;
+  // initial dark mode from local storage or media
+  switch (localDarkMode) {
+    case "true":
+      darkMode = true;
+      break;
+    case "false":
+      darkMode = false;
+      break;
+    case null:
+      darkMode =
+        window?.matchMedia?.("(prefers-color-scheme:dark)")?.matches || false;
   }
-};
 
-function setTheme(darkMode) {
-  setToggleClass(darkMode);
+  const button = document.getElementById("darkmode-toggle");
 
-  localStorage.setItem(localStorageKey, darkMode ? "true" : "false");
-  document
-    ?.querySelector("html")
-    ?.setAttribute("data-theme", darkMode ? "dark" : "light");
-}
+  const setToggleClass = (darkMode) => {
+    if (darkMode) {
+      button.classList.add("swap-active");
+    } else {
+      button.classList.remove("swap-active");
+    }
+  };
 
-button.onclick = () => {
-  darkMode = !darkMode;
+  function setTheme(darkMode) {
+    setToggleClass(darkMode);
+
+    localStorage.setItem(localStorageKey, darkMode ? "true" : "false");
+    document
+      ?.querySelector("html")
+      ?.setAttribute("data-theme", darkMode ? "dark" : "light");
+  }
+
+  if (button) {
+    button.onclick = () => {
+      darkMode = !darkMode;
+      setTheme(darkMode);
+    };
+  }
+
   setTheme(darkMode);
-};
-
-setTheme(darkMode);
 </script>

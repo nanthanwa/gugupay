@@ -1,6 +1,7 @@
 ---
 import { pageDescription } from "@utils/configs";
 import MainLayout from "@layouts/main.astro";
+import MerchantPage from "@components/pages/MerchantPage.svelte";
 ---
 
 <MainLayout
@@ -8,5 +9,5 @@ import MainLayout from "@layouts/main.astro";
   description={pageDescription}
   isWallet={true}
 >
-  <div></div>
+  <MerchantPage />
 </MainLayout>

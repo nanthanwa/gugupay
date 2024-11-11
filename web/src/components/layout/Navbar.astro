@@ -1,7 +1,7 @@
 ---
 import { NAVIGATION_MENU } from "@utils/configs";
 import SunMoon from "@icons/SunMoon.astro";
-import ConnectDropdown from "@components/wallet/ConnectDropdown.svelte";
+import ConnectDropdownWIthModule from "@components/common/ConnectDropdownWIthModule.svelte";
 import DashboardButton from "@components/common/DashboardButton.astro";
 
 interface Props {
@@ -25,7 +25,9 @@ const { isWallet } = Astro.props;
         {
           () => {
             if (isWallet) {
-              return <ConnectDropdown client:load client:only="svelte" />;
+              return (
+                <ConnectDropdownWIthModule client:load client:only="svelte" />
+              );
             }
             return (
               <>
@@ -68,16 +70,20 @@ const { isWallet } = Astro.props;
         }
       </div>
       <div
-        class="hidden w-full items-center justify-start lg:order-1 lg:flex lg:w-auto"
+        class="mt-4 hidden w-full items-center justify-start bg-base-100 lg:order-1 lg:mt-0 lg:flex lg:w-auto lg:bg-base-200"
         id="mobile-menu"
       >
         {
           NAVIGATION_MENU.map(({ label, items }) => {
             return (
               <div class="dropdown dropdown-hover">
-                <label tabindex="0" class="btn">
+                <button
+                  tabindex="0"
+                  class="btn bg-base-100 shadow-none lg:bg-base-200"
+                >
                   {label}
-                </label>
+                  <span class="lg:hidden">&nbsp;&nbsp;&darr;</span>
+                </button>
                 <ul
                   tabindex="0"
                   class="menu dropdown-content z-[1] w-52 rounded-box bg-base-100 p-2 shadow"

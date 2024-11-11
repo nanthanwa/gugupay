@@ -2,7 +2,7 @@
   import { loadingWalletDataAtom } from "@stores/loadingStore";
   import { shortAddress, suiToString } from "@utils/sui";
   import ConnectButton from "./ConnectButton.svelte";
-  import SuiModule, {
+  import {
     disconnectWallet,
     selectWalletAccount,
     walletAccounts,
@@ -11,7 +11,6 @@
   } from "./SuiModule.svelte";
 </script>
 
-<SuiModule />
 {#if walletAccount.value}
   <div
     class="dropdown dropdown-bottom dropdown-end w-48 lg:w-64 {$loadingWalletDataAtom &&
@@ -70,11 +69,13 @@
         {/if}
       {/each}
       <button
-        class="btn btn-error border-base-300 w-full rounded-full"
+        class="btn btn-sm lg:btn-md btn-error border-base-300 w-full rounded-full"
         onclick={disconnectWallet}>Disconnect</button
       >
     </div>
   </div>
 {:else}
-  <ConnectButton />
+  <ConnectButton
+    class="btn btn-sm lg:btn-md bg-base-100 border-base-300 rounded-full"
+  />
 {/if}

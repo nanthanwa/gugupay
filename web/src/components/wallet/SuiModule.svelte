@@ -14,12 +14,16 @@
   import type { MerchantObjectData, WalletAccountData } from "@typedef/sui";
   import { getMerchantObjects, getSuiBalance } from "@client/sui";
 
+  const selectedWalletKey = "selectedWallet";
+
   let _walletAdapter = $state<IWalletAdapter>();
   let _walletStatus = $state<ConnectionStatus>(ConnectionStatus.DISCONNECTED);
   let _walletAccounts = $state<WalletAccountData[]>([]);
   let _walletAccountIdx = $state<number>(0);
   let _walletAccount = $state<WalletAccountData>();
   let connectModal = $state<IConnectModal>();
+
+  const selectedWalletName = localStorage.getItem(selectedWalletKey);
 
   export const getConnectModal = () => {
     return connectModal;
@@ -98,6 +102,8 @@
         _walletAccountIdx = 0;
         _walletAccount = newWalletAccount[0];
 
+        localStorage.setItem(selectedWalletKey, wallet.name);
+
         _walletStatus = ConnectionStatus.CONNECTED;
         _onConnect();
       } catch (error: any) {
@@ -122,6 +128,7 @@
     _walletAccounts = [];
     _walletAccountIdx = 0;
     _walletAccount = undefined;
+    localStorage.removeItem(selectedWalletKey);
   };
 
   export const signAndExecuteTransactionBlock = async (
@@ -165,6 +172,16 @@
   };
 
   let availableWallets = getAvailableWallets(AllDefaultWallets);
+
+  // auto connect wallet
+  if (selectedWalletName) {
+    const selectedWallet = availableWallets.find(
+      (wallet) => wallet.name === selectedWalletName,
+    );
+    if (selectedWallet) {
+      connect(selectedWallet);
+    }
+  }
 </script>
 
 <script lang="ts">
@@ -179,8 +196,4 @@
   }
 </script>
 
-<ConnectModal bind:this={connectModal} {availableWallets}>
-  {#if children}
-    {@render children()}
-  {/if}
-</ConnectModal>
+<ConnectModal bind:this={connectModal} {availableWallets} />

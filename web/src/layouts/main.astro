@@ -1,6 +1,7 @@
 ---
 import Footer from "../components/layout/Footer.astro";
 import Navbar from "../components/layout/Navbar.astro";
+import Head from "./head.astro";
 
 interface Props {
   title: string;
@@ -14,19 +15,7 @@ const { title, description, isWallet } = Astro.props;
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>{title}</title>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="description" content={description} />
-    <meta name="theme-color" content="#fff" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:image" content="https://gugupay.io/cover.png" />
+    <Head {title} {description} />
   </head>
 
   <body>

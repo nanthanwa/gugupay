@@ -325,4 +325,103 @@ module gugupay::gugupay_tests {
 
         ts::end(scenario);
     }
+
+    #[test]
+    fun test_update_merchant() {
+        let mut scenario = setup_test();
+        
+        // First create a merchant
+        ts::next_tx(&mut scenario, MERCHANT);
+        {
+            let mut state = ts::take_shared<GugupayState>(&scenario);
+            let ctx = ts::ctx(&mut scenario);
+
+            gugupay::create_merchant(
+                &mut state,
+                MERCHANT_NAME,
+                MERCHANT_DESC,
+                MERCHANT_LOGO,
+                b"",
+                ctx
+            );
+
+            ts::return_shared(state);
+        };
+
+        // Update merchant details
+        ts::next_tx(&mut scenario, MERCHANT);
+        {
+            let mut state = ts::take_shared<GugupayState>(&scenario);
+            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
+            let ctx = ts::ctx(&mut scenario);
+
+            let new_name = b"Updated Merchant";
+            let new_desc = b"Updated Description";
+            let new_logo = b"updated_logo.png";
+            let new_callback = b"https://callback.example.com";
+
+            gugupay::update_merchant(
+                &mut state,
+                &merchant_nft,
+                new_name,
+                new_desc,
+                new_logo,
+                new_callback,
+                ctx
+            );
+
+            ts::return_shared(state);
+            ts::return_to_sender(&scenario, merchant_nft);
+        };
+
+        ts::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 0)]
+    fun test_unauthorized_merchant_update() {
+        let mut scenario = setup_test();
+        
+        // Create merchant as MERCHANT
+        ts::next_tx(&mut scenario, MERCHANT);
+        {
+            let mut state = ts::take_shared<GugupayState>(&scenario);
+            let ctx = ts::ctx(&mut scenario);
+
+            gugupay::create_merchant(
+                &mut state,
+                MERCHANT_NAME,
+                MERCHANT_DESC,
+                MERCHANT_LOGO,
+                b"",
+                ctx
+            );
+
+            ts::return_shared(state);
+        };
+
+        // Try to update as CUSTOMER
+        ts::next_tx(&mut scenario, CUSTOMER);
+        {
+            let mut state = ts::take_shared<GugupayState>(&scenario);
+            let merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
+            let ctx = ts::ctx(&mut scenario);
+
+            // This should fail with ENotOwner
+            gugupay::update_merchant(
+                &mut state,
+                &merchant_nft,
+                b"Hacked Name",
+                b"Hacked Description",
+                b"hacked.png",
+                b"",
+                ctx
+            );
+
+            ts::return_shared(state);
+            ts::return_to_address(MERCHANT, merchant_nft);
+        };
+
+        ts::end(scenario);
+    }
 } 

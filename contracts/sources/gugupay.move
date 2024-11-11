@@ -16,6 +16,7 @@ module gugupay::gugupay {
     const EInvoiceExpired: u64 = 2;
     const EInsufficientPayment: u64 = 3;
     const EInsufficientBalance: u64 = 4;
+    const EMerchantNotFound: u64 = 5;
 
     // ======== Objects ========
     public struct AdminCap has key {
@@ -81,6 +82,14 @@ module gugupay::gugupay {
     public struct InvoiceCreated has copy, drop {
         invoice_id: u64,
         amount: u64
+    }
+
+    public struct MerchantUpdated has copy, drop {
+        merchant_id: u64,
+        name: String,
+        description: String,
+        logo: String,
+        callback_url: String
     }
 
     // ======== Functions ========
@@ -289,6 +298,37 @@ module gugupay::gugupay {
         
         // Transfer to merchant owner
         transfer::public_transfer(payment, merchant_nft.owner);
+    }
+
+    public entry fun update_merchant(
+        state: &mut GugupayState,
+        merchant_nft: &MerchantNFT,
+        name: vector<u8>,
+        description: vector<u8>,
+        logo: vector<u8>,
+        callback_url: vector<u8>,
+        ctx: &mut TxContext
+    ) {
+        // Verify the caller owns the merchant NFT
+        assert!(merchant_nft.owner == tx_context::sender(ctx), ENotOwner);
+        
+        // Get mutable reference to merchant
+        let merchant = table::borrow_mut(&mut state.merchants, merchant_nft.merchant_id);
+        
+        // Update merchant details
+        merchant.name = string::utf8(name);
+        merchant.description = string::utf8(description);
+        merchant.logo = string::utf8(logo);
+        merchant.callback_url = string::utf8(callback_url);
+
+        // Emit update event
+        event::emit(MerchantUpdated {
+            merchant_id: merchant_nft.merchant_id,
+            name: string::utf8(name),
+            description: string::utf8(description),
+            logo: string::utf8(logo),
+            callback_url: string::utf8(callback_url)
+        });
     }
 
     // Add public accessor functions

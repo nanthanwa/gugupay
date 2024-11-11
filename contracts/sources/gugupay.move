@@ -173,15 +173,15 @@ module gugupay::gugupay {
             amount,
             is_paid: false,
             deadline: clock::timestamp_ms(clock) + 86400000,
-            merchant_owner: merchant_nft.owner
+            merchant_owner: object::id_address(merchant_nft)
         };
 
         table::add(&mut state.invoices, invoice_id, invoice);
         state.invoice_count = invoice_id;
 
-        // Mint and transfer NFT to merchant owner
-        let nft = mint_invoice_nft(invoice_id, ctx);
-        transfer::transfer(nft, merchant_nft.owner);
+        // Mint and transfer NFT to merchant NFT object
+        let nft = mint_invoice_nft(invoice_id, merchant_nft, ctx);
+        transfer::transfer(nft, object::id_address(merchant_nft));
 
         // Emit event
         event::emit(InvoiceCreated {
@@ -229,6 +229,7 @@ module gugupay::gugupay {
 
     fun mint_invoice_nft(
         invoice_id: u64,
+        merchant_nft: &MerchantNFT,
         ctx: &mut TxContext
     ): InvoiceNFT {
         InvoiceNFT {
@@ -236,7 +237,7 @@ module gugupay::gugupay {
             name: string::utf8(b"GugupayI"),
             symbol: string::utf8(b"GUGUINVOICE"),
             invoice_id,
-            owner: tx_context::sender(ctx)
+            owner: object::id_address(merchant_nft)
         }
     }
 

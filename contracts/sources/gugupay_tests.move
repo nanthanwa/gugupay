@@ -108,13 +108,18 @@ module gugupay::gugupay_tests {
             ts::return_to_sender(&scenario, merchant_nft);
         };
 
-        // Verify invoice NFT was created
+        // Verify invoice NFT was created and owned by merchant object
         ts::next_tx(&mut scenario, MERCHANT);
         {
-            let invoice_nft = ts::take_from_sender<InvoiceNFT>(&scenario);
+            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
+            let merchant_nft_id = object::id_address(&merchant_nft);
+            
+            let invoice_nft = ts::take_from_address<InvoiceNFT>(&scenario, merchant_nft_id);
             assert!(gugupay::invoice_id(&invoice_nft) == 1, 0);
-            assert!(gugupay::invoice_owner(&invoice_nft) == MERCHANT, 1);
-            ts::return_to_sender(&scenario, invoice_nft);
+            assert!(gugupay::invoice_owner(&invoice_nft) == merchant_nft_id, 1);
+            
+            ts::return_to_address(merchant_nft_id, invoice_nft);
+            ts::return_to_sender(&scenario, merchant_nft);
         };
 
         ts::end(scenario);

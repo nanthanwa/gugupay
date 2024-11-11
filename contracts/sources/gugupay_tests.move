@@ -45,6 +45,7 @@ module gugupay::gugupay_tests {
                 MERCHANT_NAME,
                 MERCHANT_DESC,
                 MERCHANT_LOGO,
+                b"",
                 ctx
             );
 
@@ -78,6 +79,7 @@ module gugupay::gugupay_tests {
                 MERCHANT_NAME,
                 MERCHANT_DESC,
                 MERCHANT_LOGO,
+                b"",
                 ctx
             );
 
@@ -133,6 +135,7 @@ module gugupay::gugupay_tests {
                 MERCHANT_NAME,
                 MERCHANT_DESC,
                 MERCHANT_LOGO,
+                b"",
                 ctx
             );
 
@@ -211,6 +214,7 @@ module gugupay::gugupay_tests {
                 MERCHANT_NAME,
                 MERCHANT_DESC,
                 MERCHANT_LOGO,
+                b"",
                 ctx
             );
 
@@ -289,6 +293,7 @@ module gugupay::gugupay_tests {
                 MERCHANT_NAME,
                 MERCHANT_DESC,
                 MERCHANT_LOGO,
+                b"",
                 ctx
             );
 

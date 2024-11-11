@@ -28,7 +28,9 @@ module gugupay::gugupay {
         name: String,
         description: String,
         logo: String,
-        owner: address
+        owner: address,
+        balance: u64,
+        callback_url: String
     }
 
     public struct Invoice has key, store {
@@ -111,6 +113,7 @@ module gugupay::gugupay {
         name: vector<u8>,
         description: vector<u8>,
         logo: vector<u8>,
+        callback_url: vector<u8>,
         ctx: &mut TxContext
     ) {
         let merchant_id = state.merchant_count + 1;
@@ -120,7 +123,9 @@ module gugupay::gugupay {
             name: string::utf8(name),
             description: string::utf8(description),
             logo: string::utf8(logo),
-            owner: tx_context::sender(ctx)
+            owner: tx_context::sender(ctx),
+            balance: 0,
+            callback_url: string::utf8(callback_url)
         };
 
         table::add(&mut state.merchants, merchant_id, merchant);

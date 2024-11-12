@@ -46,10 +46,11 @@ Represents a payment request with:
 ```bash
 # Replace these with your deployed contract values
 PACKAGE_ID=0x...
-SHARED_ID=0x...  # The shared PaymentStore object ID
+SHARED_ID=0x...  # The shared object ID
 MERCHANT_ID=0x...       # The merchant ID in the store
 INVOICE_ID=0x...        # The invoice ID in the store
 CLOCK_ID=0x6           # The clock object ID
+COIN_ID=0x...   # The coin object ID
 ```
 
 ## CLI Commands
@@ -103,7 +104,7 @@ sui client call \
   --args \
     "$SHARED_ID" \
     "$INVOICE_ID" \
-    "$COIN_OBJECT_ID" \
+    "$COIN_ID" \
     "$CLOCK_ID" \
   --gas-budget 10000000
 ```

@@ -155,7 +155,7 @@ module gugupay::payment_service_tests {
     fun test_insufficient_payment() {
         let mut scenario = ts::begin(@0x1);
         let clock = clock::create_for_testing(ts::ctx(&mut scenario));
-        let (merchant_id, invoice_id) = setup_test_invoice(&mut scenario, &clock);
+        let (_merchant_id, invoice_id) = setup_test_invoice(&mut scenario, &clock);
         
         ts::next_tx(&mut scenario, @0x2);
         {
@@ -368,6 +368,75 @@ module gugupay::payment_service_tests {
                 merchant_id,
                 ts::ctx(&mut scenario)
             );
+            ts::return_shared(store);
+        };
+        
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
+    }
+
+    #[test]
+    fun test_create_merchant_success() {
+        let mut scenario = ts::begin(@0x1);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, CURRENT_TIMESTAMP);
+        
+        // Create merchant
+        ts::next_tx(&mut scenario, @0x1);
+        {
+            payment_service::init_for_testing(ts::ctx(&mut scenario));
+        };
+
+        ts::next_tx(&mut scenario, @0x1);
+        {
+            let mut store = ts::take_shared<PaymentStore>(&scenario);
+            payment_service::create_merchant(
+                &mut store,
+                MERCHANT_NAME,
+                MERCHANT_DESCRIPTION,
+                MERCHANT_LOGO_URL,
+                MERCHANT_CALLBACK_URL,
+                ts::ctx(&mut scenario)
+            );
+
+            // Get merchant ID and verify merchant details
+            let merchant_id = payment_service::get_merchant_id_for_testing(&store);
+
+            // Verify merchant owner using public view function
+            assert!(payment_service::get_merchant_owner(&store, merchant_id) == @0x1, 0);
+            
+            // Verify merchant has zero balance using public view function
+            assert!(payment_service::get_merchant_balance(&store, merchant_id) == 0, 1);
+
+            ts::return_shared(store);
+        };
+        
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
+    }
+
+    // Separate test for non-existent merchant
+    #[test]
+    #[expected_failure]
+    fun test_access_nonexistent_merchant() {
+        let mut scenario = ts::begin(@0x1);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, CURRENT_TIMESTAMP);
+        
+        // Initialize store
+        ts::next_tx(&mut scenario, @0x1);
+        {
+            payment_service::init_for_testing(ts::ctx(&mut scenario));
+        };
+
+        ts::next_tx(&mut scenario, @0x1);
+        {
+            let store = ts::take_shared<PaymentStore>(&scenario);
+            let fake_merchant_id = object::id_from_address(@0x123);
+            
+            // This should fail since the merchant doesn't exist
+            let _owner = payment_service::get_merchant_owner(&store, fake_merchant_id);
+            
             ts::return_shared(store);
         };
         

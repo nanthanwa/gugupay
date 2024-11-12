@@ -45,12 +45,12 @@ Represents a payment request with:
 
 ```bash
 # Replace these with your deployed contract values
-PACKAGE_ID=0x...
-SHARED_ID=0x...  # The shared object ID
-MERCHANT_ID=0x...       # The merchant ID in the store
-INVOICE_ID=0x...        # The invoice ID in the store
-CLOCK_ID=0x6           # The clock object ID
-COIN_ID=0x...   # The coin object ID
+PACKAGE_ID=0x8551fa82102d2de1d00711c59551ef7f87a9023ba3c9a03fd28829929aaf7dba
+SHARED_ID=0x111d7d73302552124a72db5a4c64fd8bb7bf182e24ad9f0ad6504160c8f403ea
+MERCHANT_ID=0x4084cf43219b7790e94ed4ced9b2d9bd4cd5fba8db3086454b7b74326972c161
+INVOICE_ID=0xb822fc15f26c897c5d0b0127dcc814dd17c254ec1bacfb46c73bec1ca1922709
+CLOCK_ID=0x6
+COIN_ID=0xbdfe3428d9fc640bca7d95edf14f349fc9fe9697b1d41d423192913316db1e96
 ```
 
 ## CLI Commands
@@ -86,7 +86,7 @@ sui client call \
     "$SHARED_ID" \
     "$MERCHANT_ID" \
     "Invoice for Product XYZ" \
-    10000 \
+    100 \
     1734025535000 \
     "$CLOCK_ID" \
   --gas-budget 10000000

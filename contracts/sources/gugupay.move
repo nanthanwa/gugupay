@@ -99,7 +99,7 @@ module gugupay::payment_service {
         transfer::transfer(merchant, tx_context::sender(ctx));
     }
 
-    public fun create_invoice(
+    public entry fun create_invoice(
         merchant: &Merchant,
         description: vector<u8>,
         amount_usd: u64,
@@ -130,7 +130,7 @@ module gugupay::payment_service {
         transfer::transfer(invoice, tx_context::sender(ctx));
     }
 
-    public fun pay_invoice(
+    public entry fun pay_invoice(
         merchant: &mut Merchant,
         invoice: &mut Invoice,
         mut payment: Coin<SUI>,
@@ -181,7 +181,7 @@ module gugupay::payment_service {
         transfer::public_transfer(withdrawn, merchant.owner);
     }
 
-    public fun update_merchant(
+    public entry fun update_merchant(
         merchant: &mut Merchant,
         name: vector<u8>,
         description: vector<u8>,
@@ -205,7 +205,7 @@ module gugupay::payment_service {
         });
     }
 
-    public fun update_invoice(
+    public entry fun update_invoice(
         merchant: &Merchant,
         invoice: &mut Invoice,
         description: vector<u8>,

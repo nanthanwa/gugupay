@@ -9,6 +9,7 @@ module gugupay::gugupay {
     use sui::event;
     use std::string::{Self, String};
     use std::option::{Self, Option};
+    use sui::balance::{Self, Balance};
 
     // ======== Errors ========
     const ENotOwner: u64 = 0;
@@ -60,7 +61,7 @@ module gugupay::gugupay {
         symbol: String,
         merchant_id: u64,
         owner: address,
-        balance: u64
+        balance: Balance<SUI>
     }
 
     public struct InvoiceNFT has key, store {
@@ -194,7 +195,7 @@ module gugupay::gugupay {
         state: &mut GugupayState,
         invoice_id: u64,
         merchant_nft: &mut MerchantNFT,
-        payment: Coin<SUI>,
+        payment: &mut Coin<SUI>,
         clock: &Clock,
         ctx: &mut TxContext
     ) {
@@ -202,15 +203,16 @@ module gugupay::gugupay {
         
         assert!(!invoice.is_paid, EInvoiceAlreadyPaid);
         assert!(invoice.deadline > clock::timestamp_ms(clock), EInvoiceExpired);
-        assert!(coin::value(&payment) >= invoice.amount, EInsufficientPayment);
+        assert!(coin::value(payment) >= invoice.amount, EInsufficientPayment);
         assert!(merchant_nft.merchant_id == invoice.merchant_id, ENotOwner);
 
-        // Update merchant NFT balance
-        merchant_nft.balance = merchant_nft.balance + invoice.amount;
+        // Extract the payment amount from the coin
+        let paid_coin = coin::split(payment, invoice.amount, ctx);
+        let paid_balance = coin::into_balance(paid_coin);
+        
+        // Add to merchant NFT's balance
+        balance::join(&mut merchant_nft.balance, paid_balance);
         invoice.is_paid = true;
-
-        // Transfer payment to contract treasury
-        transfer::public_transfer(payment, tx_context::sender(ctx)); // TODO: change to contract treasury
     }
 
     fun mint_merchant_nft(
@@ -223,7 +225,7 @@ module gugupay::gugupay {
             symbol: string::utf8(b"GUGUMERCHANT"),
             merchant_id,
             owner: tx_context::sender(ctx),
-            balance: 0
+            balance: balance::zero()
         }
     }
 
@@ -253,14 +255,20 @@ module gugupay::gugupay {
         let merchant = table::borrow(&state.merchants, merchant_nft.merchant_id);
         assert!(merchant.owner == tx_context::sender(ctx), ENotOwner);
         
+        // Verify balance is zero before deletion
+        assert!(balance::value(&merchant_nft.balance) == 0, EInsufficientBalance);
+        
         let MerchantNFT { 
-            id, 
-            name: _, 
-            symbol: _, 
-            merchant_id: _, 
-            owner: _, 
-            balance: _ 
+            id,
+            name: _,
+            symbol: _,
+            merchant_id: _,
+            owner: _,
+            balance
         } = merchant_nft;
+
+        // Destroy the zero balance
+        balance::destroy_zero(balance);
         object::delete(id);
     }
 
@@ -282,23 +290,31 @@ module gugupay::gugupay {
 
     public entry fun withdraw_sui(
         merchant_nft: &mut MerchantNFT,
-        treasury: &mut Coin<SUI>,
+        amount: Option<u64>,
         ctx: &mut TxContext
     ) {
         // Verify the caller is the merchant NFT owner
         assert!(merchant_nft.owner == tx_context::sender(ctx), ENotOwner);
         
-        // Verify there's balance to withdraw
-        assert!(merchant_nft.balance > 0, EInsufficientBalance);
+        let withdraw_amount = if (option::is_some(&amount)) {
+            let amt = option::destroy_some(amount);
+            assert!(balance::value(&merchant_nft.balance) >= amt, EInsufficientBalance);
+            amt
+        } else {
+            balance::value(&merchant_nft.balance)
+        };
         
-        // Split coins from treasury
-        let payment = coin::split(treasury, merchant_nft.balance, ctx);
+        // Only proceed if there's a positive amount to withdraw
+        assert!(withdraw_amount > 0, EInsufficientBalance);
         
-        // Reset merchant NFT balance
-        merchant_nft.balance = 0;
+        // Split the exact amount from merchant NFT's balance
+        let withdrawn_balance = balance::split(&mut merchant_nft.balance, withdraw_amount);
         
-        // Transfer to merchant owner
-        transfer::public_transfer(payment, merchant_nft.owner);
+        // Create a new coin with the withdrawn balance
+        let withdrawn_coin = coin::from_balance(withdrawn_balance, ctx);
+        
+        // Transfer withdrawn coins to merchant owner
+        transfer::public_transfer(withdrawn_coin, tx_context::sender(ctx));
     }
 
     public entry fun update_merchant(
@@ -342,7 +358,7 @@ module gugupay::gugupay {
     }
 
     public fun merchant_balance(nft: &MerchantNFT): u64 {
-        nft.balance
+        balance::value(&nft.balance)
     }
 
     public fun invoice_id(nft: &InvoiceNFT): u64 {

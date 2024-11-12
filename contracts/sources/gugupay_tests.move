@@ -176,17 +176,19 @@ module gugupay::gugupay_tests {
             let clock = clock::create_for_testing(ts::ctx(&mut scenario));
             let ctx = ts::ctx(&mut scenario);
 
-            // Create payment coin
-            let payment = coin::mint_for_testing<SUI>(INVOICE_AMOUNT, ctx);
+            let mut payment = coin::mint_for_testing<SUI>(INVOICE_AMOUNT + 100, ctx);
 
             gugupay::pay_invoice(
                 &mut state,
                 1, // invoice_id
                 &mut merchant_nft,
-                payment,
+                &mut payment,
                 &clock,
                 ctx
             );
+
+            // Return excess payment to customer
+            ts::return_to_sender(&scenario, payment);
 
             clock::destroy_for_testing(clock);
             ts::return_shared(state);
@@ -197,7 +199,10 @@ module gugupay::gugupay_tests {
         ts::next_tx(&mut scenario, MERCHANT);
         {
             let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
+            
+            // Verify merchant NFT balance was updated
             assert!(gugupay::merchant_balance(&merchant_nft) == INVOICE_AMOUNT, 0);
+            
             ts::return_to_sender(&scenario, merchant_nft);
         };
 
@@ -208,7 +213,7 @@ module gugupay::gugupay_tests {
     fun test_withdraw_sui() {
         let mut scenario = setup_test();
         
-        // Setup merchant, invoice, and payment
+        // Setup merchant and invoice with payment
         ts::next_tx(&mut scenario, MERCHANT);
         {
             let mut state = ts::take_shared<GugupayState>(&scenario);
@@ -230,7 +235,7 @@ module gugupay::gugupay_tests {
         ts::next_tx(&mut scenario, MERCHANT);
         {
             let mut state = ts::take_shared<GugupayState>(&scenario);
-            let mut merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
+            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
             let clock = clock::create_for_testing(ts::ctx(&mut scenario));
             let ctx = ts::ctx(&mut scenario);
 
@@ -243,40 +248,62 @@ module gugupay::gugupay_tests {
                 ctx
             );
 
-            // Create treasury coin
-            let treasury = coin::mint_for_testing<SUI>(INVOICE_AMOUNT * 2, ctx);
+            clock::destroy_for_testing(clock);
+            ts::return_shared(state);
+            ts::return_to_sender(&scenario, merchant_nft);
+        };
+
+        // Customer pays invoice
+        ts::next_tx(&mut scenario, CUSTOMER);
+        {
+            let mut state = ts::take_shared<GugupayState>(&scenario);
+            let mut merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
+            let clock = clock::create_for_testing(ts::ctx(&mut scenario));
+            let ctx = ts::ctx(&mut scenario);
+
+            let mut payment = coin::mint_for_testing<SUI>(INVOICE_AMOUNT, ctx);
 
             gugupay::pay_invoice(
                 &mut state,
                 1, // invoice_id
                 &mut merchant_nft,
-                treasury,
+                &mut payment,
                 &clock,
                 ctx
             );
 
+            // Return any remaining balance
+            ts::return_to_sender(&scenario, payment);
+
             clock::destroy_for_testing(clock);
             ts::return_shared(state);
-            ts::return_to_sender(&scenario, merchant_nft);
+            ts::return_to_address(MERCHANT, merchant_nft);
         };
 
         // Merchant withdraws balance
         ts::next_tx(&mut scenario, MERCHANT);
         {
             let mut merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let mut treasury = ts::take_from_sender<Coin<SUI>>(&scenario);
+            let initial_balance = gugupay::merchant_balance(&merchant_nft);
             let ctx = ts::ctx(&mut scenario);
 
+            // Withdraw full balance
             gugupay::withdraw_sui(
                 &mut merchant_nft,
-                &mut treasury,
+                option::none(),
                 ctx
             );
 
+            // Verify merchant NFT balance is reset
             assert!(gugupay::merchant_balance(&merchant_nft) == 0, 0);
             
+            // Verify the withdrawn payment is in merchant's address
+            let withdrawn_payment = ts::take_from_sender<Coin<SUI>>(&scenario);
+            assert!(coin::value(&withdrawn_payment) == initial_balance, 1);
+            
+            // Return all objects
             ts::return_to_sender(&scenario, merchant_nft);
-            ts::return_to_sender(&scenario, treasury);
+            ts::return_to_sender(&scenario, withdrawn_payment);
         };
 
         ts::end(scenario);

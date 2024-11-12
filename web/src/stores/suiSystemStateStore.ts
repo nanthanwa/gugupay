@@ -10,7 +10,7 @@ export const suiSystemStateAtom =
     {
       encode: JSON.stringify,
       decode: JSON.parse,
-    }
+    },
   );
 
 const suiSystemState = suiSystemStateAtom.get();

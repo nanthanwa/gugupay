@@ -8,33 +8,59 @@
     type IWallet,
     type IWalletAdapter,
   } from "@suiet/wallet-sdk";
-  import type { IdentifierString, WalletAccount } from "@wallet-standard/base";
+  import type { IdentifierString } from "@wallet-standard/base";
   import ConnectModal, { type IConnectModal } from "./ConnectModal.svelte";
   import type { SuiSignAndExecuteTransactionOutput } from "@mysten/wallet-standard";
+  import type { MerchantObjectData, WalletAccountData } from "@typedef/sui";
+  import { getMerchantObjects, getSuiBalance } from "@client/sui";
 
-  let walletAdapter = $state<IWalletAdapter>();
-  let status = $state<ConnectionStatus>(ConnectionStatus.DISCONNECTED);
-  let _account = $state<WalletAccount>();
+  const selectedWalletKey = "selectedWallet";
+
+  let _walletAdapter = $state<IWalletAdapter>();
+  let _walletStatus = $state<ConnectionStatus>(ConnectionStatus.DISCONNECTED);
+  let _walletAccounts = $state<WalletAccountData[]>([]);
+  let _walletAccountIdx = $state<number>(0);
+  let _walletAccount = $state<WalletAccountData>();
   let connectModal = $state<IConnectModal>();
+
+  const selectedWalletName = localStorage.getItem(selectedWalletKey);
+
   export const getConnectModal = () => {
     return connectModal;
   };
   let _onConnect = $state<() => void>(() => {});
 
-  export const account = {
+  export const walletAdapter = {
     get value() {
-      return _account;
+      return _walletAdapter;
     },
-    setAccount(account: WalletAccount) {
-      _account = account;
+  };
+
+  export const walletStatus = {
+    get value() {
+      return _walletStatus;
     },
-    removeAccount() {
-      _account = undefined;
+  };
+
+  export const walletAccounts = {
+    get value() {
+      return _walletAccounts;
+    },
+  };
+
+  export const walletAccountIdx = {
+    get value() {
+      return _walletAccountIdx;
+    },
+  };
+
+  export const walletAccount = {
+    get value() {
+      return _walletAccount;
     },
   };
 
   export const connectWithModal = async () => {
-    if (account.value) return;
     let selectedWallet = await connectModal?.openAndWaitForResponse();
     if (selectedWallet) {
       await connect(selectedWallet);
@@ -42,32 +68,79 @@
   };
 
   export const connect = async (wallet: IWallet) => {
-    walletAdapter = wallet?.adapter;
-    if (walletAdapter) {
-      status = ConnectionStatus.CONNECTING;
+    _walletAdapter = wallet?.adapter;
+    if (_walletAdapter) {
+      _walletStatus = ConnectionStatus.CONNECTING;
       try {
-        await walletAdapter.connect();
-        account.setAccount(walletAdapter.accounts[0]);
-        status = ConnectionStatus.CONNECTED;
+        await _walletAdapter.connect();
+
+        const walletAccountPromise = _walletAdapter.accounts.map(
+          async (account) => {
+            // get sui balance
+            const suiCoinBalance = await getSuiBalance(account.address);
+
+            // get merchants objects
+            const getMerchantObjectsResp = await getMerchantObjects(
+              account.address,
+            );
+            let merchantObjs: MerchantObjectData[] = getMerchantObjectsResp.data
+              .filter((obj) => obj.data)
+              .map((obj) => obj.data as MerchantObjectData);
+
+            return {
+              walletAccount: account,
+              suiBalance: BigInt(suiCoinBalance.totalBalance),
+              merchantObjs: merchantObjs,
+            };
+          },
+        );
+
+        const newWalletAccount: WalletAccountData[] =
+          await Promise.all(walletAccountPromise);
+
+        _walletAccounts = newWalletAccount;
+        _walletAccountIdx = 0;
+        _walletAccount = newWalletAccount[0];
+
+        localStorage.setItem(selectedWalletKey, wallet.name);
+
+        _walletStatus = ConnectionStatus.CONNECTED;
         _onConnect();
-      } catch {
-        status = ConnectionStatus.DISCONNECTED;
+      } catch (error: any) {
+        console.error("error connecting wallet", error);
+        _walletStatus = ConnectionStatus.DISCONNECTED;
       }
     }
   };
 
-  export const disconnect = () => {
-    walletAdapter?.disconnect();
-    account.removeAccount();
+  export const selectWalletAccount = (index: number) => {
+    const newWalletAccount = _walletAccounts[index];
+    if (!newWalletAccount) {
+      throw Error("wallet account index not found");
+    }
+    _walletAccountIdx = index;
+    _walletAccount = newWalletAccount;
+  };
+
+  export const disconnectWallet = () => {
+    _walletAdapter?.disconnect();
+    _walletStatus = ConnectionStatus.DISCONNECTED;
+    _walletAccounts = [];
+    _walletAccountIdx = 0;
+    _walletAccount = undefined;
+    localStorage.removeItem(selectedWalletKey);
   };
 
   export const signAndExecuteTransactionBlock = async (
     transaction: Transaction,
   ): Promise<SuiSignAndExecuteTransactionOutput> => {
-    ensureCallable();
-    return await walletAdapter!!.signAndExecuteTransaction({
-      account: account.value!!,
-      chain: account.value!!.chains[0] as IdentifierString,
+    if (_walletStatus !== ConnectionStatus.CONNECTED) {
+      throw Error("wallet is not connected");
+    }
+
+    return await _walletAdapter!!.signAndExecuteTransaction({
+      account: walletAccount.value?.walletAccount!!,
+      chain: walletAccount.value?.walletAccount!!.chains[0] as IdentifierString,
       transaction,
     });
   };
@@ -98,13 +171,17 @@
     return walletAdapters;
   };
 
-  const ensureCallable = () => {
-    if (status !== ConnectionStatus.CONNECTED) {
-      throw Error("wallet is not connected");
-    }
-  };
-
   let availableWallets = getAvailableWallets(AllDefaultWallets);
+
+  // auto connect wallet
+  if (selectedWalletName) {
+    const selectedWallet = availableWallets.find(
+      (wallet) => wallet.name === selectedWalletName,
+    );
+    if (selectedWallet) {
+      connect(selectedWallet);
+    }
+  }
 </script>
 
 <script lang="ts">
@@ -119,8 +196,4 @@
   }
 </script>
 
-<ConnectModal bind:this={connectModal} {availableWallets}>
-  {#if children}
-    {@render children()}
-  {/if}
-</ConnectModal>
+<ConnectModal bind:this={connectModal} {availableWallets} />

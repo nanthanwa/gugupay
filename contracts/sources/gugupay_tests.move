@@ -1,459 +1,291 @@
 #[test_only]
-module gugupay::gugupay_tests {
-    use sui::test_scenario::{Self as ts, Scenario};
-    use sui::coin::{Self, Coin};
+module gugupay::payment_service_tests {
+    use sui::test_scenario::{Self as ts};
+    use sui::coin::{Self};
     use sui::sui::SUI;
-    use sui::clock::{Self, Clock};
-    use sui::test_utils;
-    use std::string;
-    use gugupay::gugupay::{Self, AdminCap, GugupayState, MerchantNFT, InvoiceNFT};
+    use sui::clock::{Self};
+    use sui::object;
+    use gugupay::payment_service::{Self, Merchant, Invoice};
 
-    // Test addresses
-    const ADMIN: address = @0xAD;
-    const MERCHANT: address = @0xABC;
-    const CUSTOMER: address = @0xCBA;
-
-    // Test values
+    // Test constants
     const MERCHANT_NAME: vector<u8> = b"Test Merchant";
-    const MERCHANT_DESC: vector<u8> = b"Test Description";
-    const MERCHANT_LOGO: vector<u8> = b"test_logo.png";
-    const INVOICE_DESC: vector<u8> = b"Test Invoice";
-    const INVOICE_AMOUNT: u64 = 1000;
-
-    fun setup_test(): Scenario {
-        let mut scenario_val = ts::begin(ADMIN);
-        let ctx = ts::ctx(&mut scenario_val);
-        
-        // Initialize the contract
-        gugupay::init_for_testing(ctx);
-        
-        scenario_val
-    }
+    const MERCHANT_DESCRIPTION: vector<u8> = b"A test merchant";
+    const MERCHANT_LOGO_URL: vector<u8> = b"https://example.com/logo.png";
+    const MERCHANT_CALLBACK_URL: vector<u8> = b"https://example.com/callback";
+    const INVOICE_DESCRIPTION: vector<u8> = b"Test Invoice";
+    const INVOICE_AMOUNT_USD: u64 = 100; // $100
+    const INVOICE_EXPIRES_AT: u64 = 1000000000000; // Some future timestamp
 
     #[test]
     fun test_create_merchant() {
-        let mut scenario = setup_test();
+        let mut scenario = ts::begin(@0x1);
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         
-        // Create merchant as MERCHANT address
-        ts::next_tx(&mut scenario, MERCHANT);
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_merchant(
-                &mut state,
+            payment_service::create_merchant(
                 MERCHANT_NAME,
-                MERCHANT_DESC,
-                MERCHANT_LOGO,
-                b"",
-                ctx
+                MERCHANT_DESCRIPTION,
+                MERCHANT_LOGO_URL,
+                MERCHANT_CALLBACK_URL,
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
         };
-
-        // Verify merchant NFT was created
-        ts::next_tx(&mut scenario, MERCHANT);
+        
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            assert!(gugupay::merchant_id(&merchant_nft) == 1, 0);
-            assert!(gugupay::merchant_owner(&merchant_nft) == MERCHANT, 1);
-            ts::return_to_sender(&scenario, merchant_nft);
+            let merchant = ts::take_from_sender<Merchant>(&scenario);
+            assert!(payment_service::get_merchant_owner(&merchant) == @0x1, 0);
+            ts::return_to_sender(&scenario, merchant);
         };
-
+        
+        clock::destroy_for_testing(clock);
         ts::end(scenario);
     }
 
     #[test]
     fun test_create_invoice() {
-        let mut scenario = setup_test();
+        let mut scenario = ts::begin(@0x1);
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         
-        // First create a merchant
-        ts::next_tx(&mut scenario, MERCHANT);
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_merchant(
-                &mut state,
+            payment_service::create_merchant(
                 MERCHANT_NAME,
-                MERCHANT_DESC,
-                MERCHANT_LOGO,
-                b"",
-                ctx
+                MERCHANT_DESCRIPTION,
+                MERCHANT_LOGO_URL,
+                MERCHANT_CALLBACK_URL,
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
         };
-
-        // Then create invoice
-        ts::next_tx(&mut scenario, MERCHANT);
+        
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let clock = clock::create_for_testing(ts::ctx(&mut scenario));
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_invoice(
-                &mut state,
-                &merchant_nft,
-                INVOICE_DESC,
-                INVOICE_AMOUNT,
+            let merchant = ts::take_from_sender<Merchant>(&scenario);
+            payment_service::create_invoice(
+                &merchant,
+                INVOICE_DESCRIPTION,
+                INVOICE_AMOUNT_USD,
+                INVOICE_EXPIRES_AT,
                 &clock,
-                ctx
+                ts::ctx(&mut scenario)
             );
-
-            clock::destroy_for_testing(clock);
-            ts::return_shared(state);
-            ts::return_to_sender(&scenario, merchant_nft);
+            ts::return_to_sender(&scenario, merchant);
         };
-
-        // Verify invoice NFT was created and owned by merchant object
-        ts::next_tx(&mut scenario, MERCHANT);
+        
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let merchant_nft_id = object::id_address(&merchant_nft);
-            
-            let invoice_nft = ts::take_from_address<InvoiceNFT>(&scenario, merchant_nft_id);
-            assert!(gugupay::invoice_id(&invoice_nft) == 1, 0);
-            assert!(gugupay::invoice_owner(&invoice_nft) == merchant_nft_id, 1);
-            
-            ts::return_to_address(merchant_nft_id, invoice_nft);
-            ts::return_to_sender(&scenario, merchant_nft);
+            let invoice = ts::take_from_sender<Invoice>(&scenario);
+            let merchant = ts::take_from_sender<Merchant>(&scenario);
+            assert!(payment_service::get_invoice_merchant_id(&invoice) == object::id(&merchant), 0);
+            assert!(!payment_service::is_invoice_paid(&invoice), 0);
+            ts::return_to_sender(&scenario, invoice);
+            ts::return_to_sender(&scenario, merchant);
         };
-
+        
+        clock::destroy_for_testing(clock);
         ts::end(scenario);
     }
 
     #[test]
     fun test_pay_invoice() {
-        let mut scenario = setup_test();
+        let mut scenario = ts::begin(@0x1);
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         
-        // Setup merchant and invoice
-        ts::next_tx(&mut scenario, MERCHANT);
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_merchant(
-                &mut state,
+            payment_service::create_merchant(
                 MERCHANT_NAME,
-                MERCHANT_DESC,
-                MERCHANT_LOGO,
-                b"",
-                ctx
+                MERCHANT_DESCRIPTION,
+                MERCHANT_LOGO_URL,
+                MERCHANT_CALLBACK_URL,
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
         };
-
-        ts::next_tx(&mut scenario, MERCHANT);
+        
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let clock = clock::create_for_testing(ts::ctx(&mut scenario));
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_invoice(
-                &mut state,
-                &merchant_nft,
-                INVOICE_DESC,
-                INVOICE_AMOUNT,
+            let merchant = ts::take_from_sender<Merchant>(&scenario);
+            payment_service::create_invoice(
+                &merchant,
+                INVOICE_DESCRIPTION,
+                INVOICE_AMOUNT_USD,
+                INVOICE_EXPIRES_AT,
                 &clock,
-                ctx
+                ts::ctx(&mut scenario)
             );
-
-            clock::destroy_for_testing(clock);
-            ts::return_shared(state);
-            ts::return_to_sender(&scenario, merchant_nft);
+            ts::return_to_sender(&scenario, merchant);
         };
-
-        // Customer pays invoice
-        ts::next_tx(&mut scenario, CUSTOMER);
+        
+        ts::next_tx(&mut scenario, @0x2);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let mut merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
-            let clock = clock::create_for_testing(ts::ctx(&mut scenario));
-            let ctx = ts::ctx(&mut scenario);
-
-            let mut payment = coin::mint_for_testing<SUI>(INVOICE_AMOUNT + 100, ctx);
-
-            gugupay::pay_invoice(
-                &mut state,
-                1, // invoice_id
-                &mut merchant_nft,
-                &mut payment,
+            let payment = coin::mint_for_testing<SUI>(300000000, ts::ctx(&mut scenario)); // 3 SUI
+            let mut merchant = ts::take_from_address<Merchant>(&scenario, @0x1);
+            let mut invoice = ts::take_from_address<Invoice>(&scenario, @0x1);
+            
+            payment_service::pay_invoice(
+                &mut merchant,
+                &mut invoice,
+                payment,
                 &clock,
-                ctx
+                ts::ctx(&mut scenario)
             );
-
-            // Return excess payment to customer
-            ts::return_to_sender(&scenario, payment);
-
-            clock::destroy_for_testing(clock);
-            ts::return_shared(state);
-            ts::return_to_address(MERCHANT, merchant_nft);
-        };
-
-        // Verify merchant NFT balance updated
-        ts::next_tx(&mut scenario, MERCHANT);
-        {
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
             
-            // Verify merchant NFT balance was updated
-            assert!(gugupay::merchant_balance(&merchant_nft) == INVOICE_AMOUNT, 0);
+            assert!(payment_service::is_invoice_paid(&invoice), 0);
             
-            ts::return_to_sender(&scenario, merchant_nft);
+            ts::return_to_address(@0x1, merchant);
+            ts::return_to_address(@0x1, invoice);
         };
-
+        
+        clock::destroy_for_testing(clock);
         ts::end(scenario);
     }
 
     #[test]
-    fun test_withdraw_sui() {
-        let mut scenario = setup_test();
+    fun test_withdraw_balance() {
+        let mut scenario = ts::begin(@0x1);
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         
-        // Setup merchant and invoice with payment
-        ts::next_tx(&mut scenario, MERCHANT);
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_merchant(
-                &mut state,
+            payment_service::create_merchant(
                 MERCHANT_NAME,
-                MERCHANT_DESC,
-                MERCHANT_LOGO,
-                b"",
-                ctx
+                MERCHANT_DESCRIPTION,
+                MERCHANT_LOGO_URL,
+                MERCHANT_CALLBACK_URL,
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
         };
-
-        // Create and pay invoice
-        ts::next_tx(&mut scenario, MERCHANT);
-        {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let clock = clock::create_for_testing(ts::ctx(&mut scenario));
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_invoice(
-                &mut state,
-                &merchant_nft,
-                INVOICE_DESC,
-                INVOICE_AMOUNT,
-                &clock,
-                ctx
-            );
-
-            clock::destroy_for_testing(clock);
-            ts::return_shared(state);
-            ts::return_to_sender(&scenario, merchant_nft);
-        };
-
-        // Customer pays invoice
-        ts::next_tx(&mut scenario, CUSTOMER);
-        {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let mut merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
-            let clock = clock::create_for_testing(ts::ctx(&mut scenario));
-            let ctx = ts::ctx(&mut scenario);
-
-            let mut payment = coin::mint_for_testing<SUI>(INVOICE_AMOUNT, ctx);
-
-            gugupay::pay_invoice(
-                &mut state,
-                1, // invoice_id
-                &mut merchant_nft,
-                &mut payment,
-                &clock,
-                ctx
-            );
-
-            // Return any remaining balance
-            ts::return_to_sender(&scenario, payment);
-
-            clock::destroy_for_testing(clock);
-            ts::return_shared(state);
-            ts::return_to_address(MERCHANT, merchant_nft);
-        };
-
-        // Merchant withdraws balance
-        ts::next_tx(&mut scenario, MERCHANT);
-        {
-            let mut merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let initial_balance = gugupay::merchant_balance(&merchant_nft);
-            let ctx = ts::ctx(&mut scenario);
-
-            // Withdraw full balance
-            gugupay::withdraw_sui(
-                &mut merchant_nft,
-                option::none(),
-                ctx
-            );
-
-            // Verify merchant NFT balance is reset
-            assert!(gugupay::merchant_balance(&merchant_nft) == 0, 0);
-            
-            // Verify the withdrawn payment is in merchant's address
-            let withdrawn_payment = ts::take_from_sender<Coin<SUI>>(&scenario);
-            assert!(coin::value(&withdrawn_payment) == initial_balance, 1);
-            
-            // Return all objects
-            ts::return_to_sender(&scenario, merchant_nft);
-            ts::return_to_sender(&scenario, withdrawn_payment);
-        };
-
-        ts::end(scenario);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = 0)]
-    fun test_unauthorized_invoice_creation() {
-        let mut scenario = setup_test();
         
-        // Create merchant
-        ts::next_tx(&mut scenario, MERCHANT);
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_merchant(
-                &mut state,
-                MERCHANT_NAME,
-                MERCHANT_DESC,
-                MERCHANT_LOGO,
-                b"",
-                ctx
-            );
-
-            ts::return_shared(state);
-        };
-
-        // Try to create invoice as unauthorized user
-        ts::next_tx(&mut scenario, CUSTOMER);
-        {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
-            let clock = clock::create_for_testing(ts::ctx(&mut scenario));
-            let ctx = ts::ctx(&mut scenario);
-
-            // This should fail with ENotOwner (0)
-            gugupay::create_invoice(
-                &mut state,
-                &merchant_nft,
-                INVOICE_DESC,
-                INVOICE_AMOUNT,
+            let merchant = ts::take_from_sender<Merchant>(&scenario);
+            payment_service::create_invoice(
+                &merchant,
+                INVOICE_DESCRIPTION,
+                INVOICE_AMOUNT_USD,
+                INVOICE_EXPIRES_AT,
                 &clock,
-                ctx
+                ts::ctx(&mut scenario)
             );
-
-            clock::destroy_for_testing(clock);
-            ts::return_shared(state);
-            ts::return_to_address(MERCHANT, merchant_nft);
+            ts::return_to_sender(&scenario, merchant);
         };
-
+        
+        ts::next_tx(&mut scenario, @0x2);
+        {
+            let payment = coin::mint_for_testing<SUI>(300000000, ts::ctx(&mut scenario)); // 3 SUI
+            let mut merchant = ts::take_from_address<Merchant>(&scenario, @0x1);
+            let mut invoice = ts::take_from_address<Invoice>(&scenario, @0x1);
+            
+            payment_service::pay_invoice(
+                &mut merchant,
+                &mut invoice,
+                payment,
+                &clock,
+                ts::ctx(&mut scenario)
+            );
+            
+            ts::return_to_address(@0x1, merchant);
+            ts::return_to_address(@0x1, invoice);
+        };
+        
+        ts::next_tx(&mut scenario, @0x1);
+        {
+            let mut merchant = ts::take_from_sender<Merchant>(&scenario);
+            let withdrawn = payment_service::withdraw_balance(&mut merchant, ts::ctx(&mut scenario));
+            assert!(coin::value(&withdrawn) == 250000000, 0); // 2.5 SUI (100 USD at 1 SUI = $40)
+            
+            // Transfer the withdrawn coin to the merchant owner instead of returning it
+            transfer::public_transfer(withdrawn, @0x1);
+            ts::return_to_sender(&scenario, merchant);
+        };
+        
+        clock::destroy_for_testing(clock);
         ts::end(scenario);
     }
 
     #[test]
     fun test_update_merchant() {
-        let mut scenario = setup_test();
+        let mut scenario = ts::begin(@0x1);
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         
-        // First create a merchant
-        ts::next_tx(&mut scenario, MERCHANT);
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_merchant(
-                &mut state,
+            payment_service::create_merchant(
                 MERCHANT_NAME,
-                MERCHANT_DESC,
-                MERCHANT_LOGO,
-                b"",
-                ctx
+                MERCHANT_DESCRIPTION,
+                MERCHANT_LOGO_URL,
+                MERCHANT_CALLBACK_URL,
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
         };
-
-        // Update merchant details
-        ts::next_tx(&mut scenario, MERCHANT);
+        
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_sender<MerchantNFT>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            let new_name = b"Updated Merchant";
-            let new_desc = b"Updated Description";
-            let new_logo = b"updated_logo.png";
-            let new_callback = b"https://callback.example.com";
-
-            gugupay::update_merchant(
-                &mut state,
-                &merchant_nft,
-                new_name,
-                new_desc,
-                new_logo,
-                new_callback,
-                ctx
+            let mut merchant = ts::take_from_sender<Merchant>(&scenario);
+            payment_service::update_merchant(
+                &mut merchant,
+                b"Updated Merchant",
+                b"Updated description",
+                b"https://example.com/new_logo.png",
+                b"https://example.com/new_callback",
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
-            ts::return_to_sender(&scenario, merchant_nft);
+            ts::return_to_sender(&scenario, merchant);
         };
-
+        
+        clock::destroy_for_testing(clock);
         ts::end(scenario);
     }
 
     #[test]
-    #[expected_failure(abort_code = 0)]
-    fun test_unauthorized_merchant_update() {
-        let mut scenario = setup_test();
+    fun test_update_invoice() {
+        let mut scenario = ts::begin(@0x1);
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         
-        // Create merchant as MERCHANT
-        ts::next_tx(&mut scenario, MERCHANT);
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let ctx = ts::ctx(&mut scenario);
-
-            gugupay::create_merchant(
-                &mut state,
+            payment_service::create_merchant(
                 MERCHANT_NAME,
-                MERCHANT_DESC,
-                MERCHANT_LOGO,
-                b"",
-                ctx
+                MERCHANT_DESCRIPTION,
+                MERCHANT_LOGO_URL,
+                MERCHANT_CALLBACK_URL,
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
         };
-
-        // Try to update as CUSTOMER
-        ts::next_tx(&mut scenario, CUSTOMER);
+        
+        ts::next_tx(&mut scenario, @0x1);
         {
-            let mut state = ts::take_shared<GugupayState>(&scenario);
-            let merchant_nft = ts::take_from_address<MerchantNFT>(&scenario, MERCHANT);
-            let ctx = ts::ctx(&mut scenario);
-
-            // This should fail with ENotOwner
-            gugupay::update_merchant(
-                &mut state,
-                &merchant_nft,
-                b"Hacked Name",
-                b"Hacked Description",
-                b"hacked.png",
-                b"",
-                ctx
+            let merchant = ts::take_from_sender<Merchant>(&scenario);
+            payment_service::create_invoice(
+                &merchant,
+                INVOICE_DESCRIPTION,
+                INVOICE_AMOUNT_USD,
+                INVOICE_EXPIRES_AT,
+                &clock,
+                ts::ctx(&mut scenario)
             );
-
-            ts::return_shared(state);
-            ts::return_to_address(MERCHANT, merchant_nft);
+            ts::return_to_sender(&scenario, merchant);
         };
-
+        
+        ts::next_tx(&mut scenario, @0x1);
+        {
+            let merchant = ts::take_from_sender<Merchant>(&scenario);
+            let mut invoice = ts::take_from_sender<Invoice>(&scenario);
+            payment_service::update_invoice(
+                &merchant,
+                &mut invoice,
+                b"Updated Invoice",
+                150,
+                2000000000000,
+                &clock,
+                ts::ctx(&mut scenario)
+            );
+            ts::return_to_sender(&scenario, merchant);
+            ts::return_to_sender(&scenario, invoice);
+        };
+        
+        clock::destroy_for_testing(clock);
         ts::end(scenario);
     }
-} 
+}

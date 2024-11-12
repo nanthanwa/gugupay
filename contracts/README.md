@@ -1,9 +1,10 @@
 # GuguPay Smart Contract
 
-A payment processing smart contract built on Sui Move that allows merchants to create invoices and accept SUI tokens as payment. The contract includes features for merchant management, invoice creation, payment processing, and balance withdrawal.
+A payment processing smart contract built on Sui Move that allows merchants to create invoices and accept SUI tokens as payment. The contract uses a shared object design for better scalability and user experience.
 
 ## Features
 
+- Shared object design for better scalability
 - Merchant registration and management
 - Invoice creation with USD pricing
 - Payment processing with automatic SUI/USD conversion
@@ -13,15 +14,24 @@ A payment processing smart contract built on Sui Move that allows merchants to c
 
 ## Contract Objects
 
-### Merchant NFT
+### PaymentStore (Shared Object)
+
+The main store that holds all merchants and invoices:
+
+- Table of merchants indexed by ID
+- Table of invoices indexed by ID
+- Last created merchant and invoice IDs for testing
+
+### Merchant (Store Object)
 
 Represents a merchant account with:
 
 - Name, description, and logo URL
 - Callback URL for payment notifications
 - Balance in SUI tokens
+- Owner address
 
-### Invoice NFT
+### Invoice (Store Object)
 
 Represents a payment request with:
 
@@ -29,23 +39,24 @@ Represents a payment request with:
 - Description
 - Expiration timestamp
 - Payment status
+- Reference to merchant ID
 
 ## Environment Variables
 
 ```bash
 # Replace these with your deployed contract values
-PACKAGE_ID=0x2299e39816a9ea105975ddac02970aecf70db19970a0d659261fbdfaec8081b7
-MERCHANT_ID=0xd611b74b1e773d880ef3ee14c2b9f08883d514d9a0202de8e3f6e42f0795931a
-INVOICE_ID=0xe75d5b7bbcc211a8bd31036557d6a830a7e3bc9207734eb03f6cf23310a6b8c5
-CLOCK_ID=0x6
-COIN_OBJECT_ID=0x4fe5034b75de18a519b1782651ab69db618108c69ff99ec2fe4f92785aab5bde << don't forget to update this
+PACKAGE_ID=0x...
+SHARED_ID=0x...  # The shared PaymentStore object ID
+MERCHANT_ID=0x...       # The merchant ID in the store
+INVOICE_ID=0x...        # The invoice ID in the store
+CLOCK_ID=0x6           # The clock object ID
 ```
 
 ## CLI Commands
 
 ### Create a Merchant
 
-Creates a new merchant profile.
+Creates a new merchant in the shared store.
 
 ```bash
 sui client call \
@@ -53,6 +64,7 @@ sui client call \
   --module payment_service \
   --function create_merchant \
   --args \
+    "$SHARED_ID" \
     "Merchant Name" \
     "Merchant Description" \
     "https://example.com/logo.png" \
@@ -70,9 +82,10 @@ sui client call \
   --module payment_service \
   --function create_invoice \
   --args \
+    "$SHARED_ID" \
     "$MERCHANT_ID" \
     "Invoice for Product XYZ" \
-    100 \
+    10000 \
     1734025535000 \
     "$CLOCK_ID" \
   --gas-budget 10000000
@@ -80,7 +93,7 @@ sui client call \
 
 ### Pay an Invoice
 
-Pays an invoice using SUI tokens. The contract automatically converts USD to SUI based on the current rate.
+Pays an invoice using SUI tokens. Anyone can pay any valid invoice.
 
 ```bash
 sui client call \
@@ -88,7 +101,7 @@ sui client call \
   --module payment_service \
   --function pay_invoice \
   --args \
-    "$MERCHANT_ID" \
+    "$SHARED_ID" \
     "$INVOICE_ID" \
     "$COIN_OBJECT_ID" \
     "$CLOCK_ID" \
@@ -97,7 +110,7 @@ sui client call \
 
 ### Withdraw Balance
 
-Allows a merchant to withdraw their accumulated balance.
+Allows a merchant owner to withdraw their accumulated balance.
 
 ```bash
 sui client call \
@@ -105,13 +118,14 @@ sui client call \
   --module payment_service \
   --function withdraw_balance \
   --args \
+    "$SHARED_ID" \
     "$MERCHANT_ID" \
   --gas-budget 10000000
 ```
 
 ### Update Merchant Profile
 
-Updates merchant details.
+Updates merchant details. Only the merchant owner can update.
 
 ```bash
 sui client call \
@@ -119,6 +133,7 @@ sui client call \
   --module payment_service \
   --function update_merchant \
   --args \
+    "$SHARED_ID" \
     "$MERCHANT_ID" \
     "Updated Name" \
     "Updated Description" \
@@ -129,7 +144,7 @@ sui client call \
 
 ### Update Invoice
 
-Updates an unpaid invoice's details.
+Updates an unpaid invoice's details. Only the merchant owner can update.
 
 ```bash
 sui client call \
@@ -137,7 +152,7 @@ sui client call \
   --module payment_service \
   --function update_invoice \
   --args \
-    "$MERCHANT_ID" \
+    "$SHARED_ID" \
     "$INVOICE_ID" \
     "Updated Description" \
     15000 \
@@ -168,10 +183,21 @@ sui client publish --gas-budget 50000000
 
 ## Important Notes
 
-1. The contract uses a fixed SUI/USD rate (1 SUI = $40 USD) for demonstration. In production, this should be replaced with an oracle.
-2. All USD amounts are in cents (e.g., 10000 = $100.00)
-3. Timestamps are in milliseconds since Unix epoch
-4. Make sure to keep your merchant NFT secure as it controls the merchant account and funds
+1. The contract uses a shared object design:
+   - All merchants and invoices are stored in a single shared object
+   - No need to own NFTs to interact with the contract
+   - Better scalability and user experience
+2. The contract uses a fixed SUI/USD rate (1 SUI = $40 USD) for demonstration
+3. All USD amounts are in cents (e.g., 10000 = $100.00)
+4. Timestamps are in milliseconds since Unix epoch
+5. Only merchant owners can:
+   - Create invoices
+   - Update merchant details
+   - Update invoice details
+   - Withdraw balance
+6. Anyone can:
+   - Pay any valid invoice
+   - View merchant and invoice details
 
 ## Events
 

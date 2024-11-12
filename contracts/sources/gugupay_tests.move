@@ -185,6 +185,9 @@ module gugupay::payment_service_tests {
                 ts::ctx(&mut scenario)
             );
             
+            // Verify merchant balance before withdrawal
+            assert!(payment_service::get_merchant_balance(&merchant) == 250000000, 0); // 2.5 SUI
+            
             ts::return_to_address(@0x1, merchant);
             ts::return_to_address(@0x1, invoice);
         };
@@ -192,11 +195,13 @@ module gugupay::payment_service_tests {
         ts::next_tx(&mut scenario, @0x1);
         {
             let mut merchant = ts::take_from_sender<Merchant>(&scenario);
-            let withdrawn = payment_service::withdraw_balance(&mut merchant, ts::ctx(&mut scenario));
-            assert!(coin::value(&withdrawn) == 250000000, 0); // 2.5 SUI (100 USD at 1 SUI = $40)
             
-            // Transfer the withdrawn coin to the merchant owner instead of returning it
-            transfer::public_transfer(withdrawn, @0x1);
+            // Withdraw balance
+            payment_service::withdraw_balance(&mut merchant, ts::ctx(&mut scenario));
+            
+            // Verify merchant balance is now zero
+            assert!(payment_service::get_merchant_balance(&merchant) == 0, 0);
+            
             ts::return_to_sender(&scenario, merchant);
         };
         

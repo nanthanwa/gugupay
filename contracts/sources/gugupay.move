@@ -169,14 +169,16 @@ module gugupay::payment_service {
         });
     }
 
-    public fun withdraw_balance(
+    public entry fun withdraw_balance(
         merchant: &mut Merchant,
         ctx: &mut TxContext
-    ): Coin<SUI> {
+    ) {
         assert!(tx_context::sender(ctx) == merchant.owner, ENotMerchantOwner);
         
         let amount = balance::value(&merchant.balance);
-        coin::from_balance(balance::split(&mut merchant.balance, amount), ctx)
+        let withdrawn = coin::from_balance(balance::split(&mut merchant.balance, amount), ctx);
+        // Automatically transfer the withdrawn coins to the merchant owner
+        transfer::public_transfer(withdrawn, merchant.owner);
     }
 
     public fun update_merchant(

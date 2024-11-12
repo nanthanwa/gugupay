@@ -34,10 +34,11 @@ Represents a payment request with:
 
 ```bash
 # Replace these with your deployed contract values
-PACKAGE_ID=
-MERCHANT_ID=
-INVOICE_ID=
+PACKAGE_ID=0x4a8a96623e0551a86097020c20cd06e4c6f4ed74feabe09af31d861c84f45673
+MERCHANT_ID=0x97c397aa5f6faee4b8d19bb52c9595f9296cd183297c756396ca4b9ace113af0
+INVOICE_ID=0xcd650a1c9e90c470a71fd12cf6099d7c1cc9f4e6c70d858aea1ddae27a8ec676
 CLOCK_ID=0x6
+COIN_OBJECT_ID=0x4fe5034b75de18a519b1782651ab69db618108c69ff99ec2fe4f92785aab5bde
 ```
 
 ## CLI Commands
@@ -71,8 +72,8 @@ sui client call \
   --args \
     "$MERCHANT_ID" \
     "Invoice for Product XYZ" \
-    10000 \
-    1703980800000 \
+    100 \
+    1734025535000 \
     "$CLOCK_ID" \
   --gas-budget 10000000
 ```
@@ -89,7 +90,7 @@ sui client call \
   --args \
     "$MERCHANT_ID" \
     "$INVOICE_ID" \
-    "<COIN_OBJECT_ID>" \
+    "$COIN_OBJECT_ID" \
     "$CLOCK_ID" \
   --gas-budget 10000000
 ```

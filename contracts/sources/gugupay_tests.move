@@ -119,7 +119,7 @@ module gugupay::payment_service_tests {
         
         ts::next_tx(&mut scenario, @0x2);
         {
-            let payment = coin::mint_for_testing<SUI>(300000000, ts::ctx(&mut scenario)); // 3 SUI
+            let payment = coin::mint_for_testing<SUI>(3000000000, ts::ctx(&mut scenario)); // 3 SUI
             let mut merchant = ts::take_from_address<Merchant>(&scenario, @0x1);
             let mut invoice = ts::take_from_address<Invoice>(&scenario, @0x1);
             
@@ -173,7 +173,7 @@ module gugupay::payment_service_tests {
         
         ts::next_tx(&mut scenario, @0x2);
         {
-            let payment = coin::mint_for_testing<SUI>(300000000, ts::ctx(&mut scenario)); // 3 SUI
+            let payment = coin::mint_for_testing<SUI>(3000000000, ts::ctx(&mut scenario)); // 3 SUI
             let mut merchant = ts::take_from_address<Merchant>(&scenario, @0x1);
             let mut invoice = ts::take_from_address<Invoice>(&scenario, @0x1);
             
@@ -186,7 +186,7 @@ module gugupay::payment_service_tests {
             );
             
             // Verify merchant balance before withdrawal
-            assert!(payment_service::get_merchant_balance(&merchant) == 250000000, 0); // 2.5 SUI
+            assert!(payment_service::get_merchant_balance(&merchant) == 2500000000, 0); // 2.5 SUI
             
             ts::return_to_address(@0x1, merchant);
             ts::return_to_address(@0x1, invoice);

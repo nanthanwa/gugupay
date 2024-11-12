@@ -144,7 +144,7 @@ module gugupay::payment_service {
         assert!(clock::timestamp_ms(clock) <= invoice.expires_at, EInvoiceExpired);
         
         let payment_value = coin::value(&payment);
-        let required_sui = (invoice.amount_usd * 100000000) / sui_usd_rate; // Convert to SUI with 8 decimals
+        let required_sui = (invoice.amount_usd * 1000000000) / sui_usd_rate; // Convert to SUI with 8 decimals
         
         assert!(payment_value >= required_sui, EInsufficientPayment);
 

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { createMerchantObject } from "@client/sui";
+  import { gugupayClient } from "@client/client";
   import { signAndExecuteTransactionBlock } from "@components/wallet/SuiModule.svelte";
   import { Transaction } from "@mysten/sui/transactions";
   import { addToastMessage } from "@stores/toastStore";
-  import type { MerchantObjectData } from "@typedef/sui";
+  import type { MerchantObjectData } from "@gugupay/sdk";
 
   type Props = {};
 
@@ -36,14 +36,14 @@
 
   function submit() {
     const txb = new Transaction();
-    const merchantTxb = createMerchantObject({
+    const merchantTxb = gugupayClient.createMerchantObject({
       txb,
       name,
       imageURL,
       callbackURL,
       description,
     });
-    signAndExecuteTransactionBlock(txb)
+    signAndExecuteTransactionBlock(merchantTxb)
       .then((result) => {
         if (result) {
           isModalOpen = false;

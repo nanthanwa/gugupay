@@ -11,8 +11,9 @@
   import type { IdentifierString } from "@wallet-standard/base";
   import ConnectModal, { type IConnectModal } from "./ConnectModal.svelte";
   import type { SuiSignAndExecuteTransactionOutput } from "@mysten/wallet-standard";
-  import type { MerchantObjectData, WalletAccountData } from "@typedef/sui";
-  import { getMerchantObjects, getSuiBalance } from "@client/sui";
+  import { gugupayClient } from "@client/client";
+  import type { WalletAccountData } from "@typedef/sui";
+  import type { MerchantObjectData } from "@gugupay/sdk";
 
   const selectedWalletKey = "selectedWallet";
 
@@ -77,15 +78,16 @@
         const walletAccountPromise = _walletAdapter.accounts.map(
           async (account) => {
             // get sui balance
-            const suiCoinBalance = await getSuiBalance(account.address);
-
-            // get merchants objects
-            const getMerchantObjectsResp = await getMerchantObjects(
+            const suiCoinBalance = await gugupayClient.getSuiBalance(
               account.address,
             );
+
+            // get merchants objects
+            const getMerchantObjectsResp =
+              await gugupayClient.getMerchantObjects(account.address);
             let merchantObjs: MerchantObjectData[] = getMerchantObjectsResp.data
               .filter((obj) => obj.data)
-              .map((obj) => obj.data as MerchantObjectData);
+              .map((obj) => obj.data as unknown as MerchantObjectData);
 
             return {
               walletAccount: account,

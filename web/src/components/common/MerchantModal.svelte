@@ -1,0 +1,179 @@
+<script lang="ts">
+  import { createMerchantObject } from "@client/sui";
+  import { signAndExecuteTransactionBlock } from "@components/wallet/SuiModule.svelte";
+  import { Transaction } from "@mysten/sui/transactions";
+  import { addToastMessage } from "@stores/toastStore";
+  import type { MerchantObjectData } from "@typedef/sui";
+
+  type Props = {};
+
+  const {}: Props = $props();
+
+  let isModalOpen: boolean = $state(false);
+  let merchant: MerchantObjectData | undefined = $state(undefined);
+
+  // elements
+  let image: HTMLImageElement;
+
+  // form data
+  let name: string = $state("");
+  let nameError: string = $state("");
+  let imageURL: string = $state("");
+  let imageError: string = $state("");
+  let callbackURL: string = $state("");
+  let callbackURLError: string = $state("");
+  let description: string = $state("");
+  let descriptionError: string = $state("");
+
+  export function open(newMerchant?: MerchantObjectData) {
+    merchant = newMerchant;
+    isModalOpen = true;
+  }
+
+  function unsaveClose() {
+    isModalOpen = false;
+  }
+
+  function submit() {
+    const txb = new Transaction();
+    const merchantTxb = createMerchantObject({
+      txb,
+      name,
+      imageURL,
+      callbackURL,
+      description,
+    });
+    signAndExecuteTransactionBlock(txb)
+      .then((result) => {
+        if (result) {
+          isModalOpen = false;
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        addToastMessage("Failed to create merchant", "error");
+      });
+  }
+
+  $effect(() => {
+    imageError = "";
+    if (imageURL) {
+      image.src = imageURL;
+    } else {
+      image.src = "/apple-touch-icon.png";
+    }
+  });
+</script>
+
+<input type="checkbox" class="modal-toggle" bind:checked={isModalOpen} />
+<dialog class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box rounded-none">
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold">
+          {merchant ? "Edit" : "New"} Merchant
+        </h3>
+        <button
+          type="button"
+          class="ml-auto inline-flex items-center p-1.5 text-sm"
+          onclick={unsaveClose}
+        >
+          <svg
+            aria-hidden="true"
+            class="h-5 w-5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg"
+            ><path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            ></path></svg
+          >
+          <span class="sr-only">Close modal</span>
+        </button>
+      </div>
+      <div class="flex flex-col gap-2">
+        <img
+          bind:this={image}
+          class="mx-auto h-24 w-24 rounded-full object-cover"
+          src="/apple-touch-icon.png"
+          alt="Merchant Test"
+          onerror={() => {
+            image.src = "/apple-touch-icon.png";
+            imageError = "Invalid image URL";
+          }}
+        />
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Name *</span>
+            <span class="label-text-alt text-error">{nameError}</span>
+          </div>
+          <input
+            type="text"
+            placeholder="Enter merchant name"
+            class="input input-bordered w-full"
+            bind:value={name}
+          />
+        </label>
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Image URL</span>
+            <span class="label-text-alt text-error">{imageError}</span>
+          </div>
+          <input
+            type="text"
+            placeholder="Enter image URL"
+            class="input input-bordered w-full"
+            bind:value={imageURL}
+          />
+        </label>
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Callback URL</span>
+            <span class="label-text-alt text-error">{callbackURLError}</span>
+          </div>
+          <input
+            type="text"
+            placeholder="Enter callback URL"
+            class="input input-bordered w-full"
+            bind:value={callbackURL}
+          />
+        </label>
+        <label class="form-control w-full">
+          <div class="label">
+            <span class="label-text">Description</span>
+            <span class="label-text-alt text-error">{descriptionError}</span>
+          </div>
+          <textarea
+            class="textarea textarea-bordered"
+            placeholder="Enter description"
+            bind:value={description}
+          ></textarea>
+        </label>
+      </div>
+      <div class="modal-action">
+        <form method="dialog">
+          <button class="btn btn-ghost" onclick={unsaveClose}>Cancel</button>
+        </form>
+        <form method="dialog">
+          <button class="btn btn-primary" onclick={submit}
+            >{merchant ? "Save" : "Create"}</button
+          >
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- Modal backdrop, close when click outside -->
+  <form method="dialog" class="modal-backdrop bg-black opacity-30">
+    <button>close</button>
+  </form>
+</dialog>
+
+<svelte:window
+  on:keydown={(e) => {
+    if (e.key === "Escape") {
+      isModalOpen = false;
+    }
+  }}
+/>

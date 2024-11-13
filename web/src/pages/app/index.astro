@@ -9,5 +9,5 @@ import MerchantPage from "@components/pages/MerchantPage.svelte";
   description={pageDescription}
   isWallet={true}
 >
-  <MerchantPage />
+  <MerchantPage client:load client:only="svelte" />
 </MainLayout>

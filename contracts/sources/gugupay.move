@@ -10,6 +10,13 @@ module gugupay::payment_service {
     use sui::event;
     use sui::clock::{Self, Clock};
     use sui::table::{Self, Table};
+    use pyth::price_info;
+    use pyth::price_identifier;
+    use pyth::price;
+    use pyth::pyth;
+    use pyth::price_info::PriceInfoObject;
+    use sui::math::{Self, pow};
+    use pyth::i64;
 
     // ======== Errors ========
     const ENotMerchantOwner: u64 = 0;
@@ -18,6 +25,8 @@ module gugupay::payment_service {
     const EInsufficientPayment: u64 = 3;
     const EInvalidAmount: u64 = 4;
     const EInvalidExpiryTime: u64 = 5;
+    const EInvalidID: u64 = 6;
+    const EInvalidPriceFeed: u64 = 7;
 
     // ======== Events ========
     public struct MerchantCreated has copy, drop {
@@ -77,9 +86,18 @@ module gugupay::payment_service {
         merchant_id: ID,
         description: String,
         amount_usd: u64,
+        amount_sui: u64,
+        exchange_rate: u64,
+        rate_timestamp: u64,
         expires_at: u64,
         is_paid: bool
     }
+
+     // ======== Constants ========
+    // SUI/USD price feed ID from Pyth Network
+    const PYTH_PRICE_FEED_ID: vector<u8> = x"50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266";
+    const PRICE_FEED_MAX_AGE: u64 = 60; // Price must be no older than 60 seconds
+    const INVOICE_VALIDITY_PERIOD: u64 = 1800000; // 30 minutes in milliseconds
 
     // ======== Init Function ========
     fun init(ctx: &mut TxContext) {

@@ -152,7 +152,7 @@
           ></textarea>
         </label>
       </div>
-      <div class="modal-action">
+      <div class="modal-action mt-0">
         <form method="dialog">
           <button class="btn btn-ghost" onclick={unsaveClose}>Cancel</button>
         </form>

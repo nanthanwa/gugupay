@@ -1,0 +1,13 @@
+---
+import { pageDescription } from "@utils/configs";
+import MainLayout from "@layouts/main.astro";
+import TestPage from "@components/pages/TestPage.svelte";
+---
+
+<MainLayout
+  title="Gugupay | Dashboard"
+  description={pageDescription}
+  isWallet={true}
+>
+  <TestPage client:load client:only="svelte" />
+</MainLayout>

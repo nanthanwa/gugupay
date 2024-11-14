@@ -41,6 +41,9 @@
     get value() {
       return _walletStatus;
     },
+    get isConnected() {
+      return _walletStatus === ConnectionStatus.CONNECTED;
+    },
   };
 
   export const walletAccounts = {

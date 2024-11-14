@@ -100,7 +100,7 @@ module gugupay::payment_service {
      // ======== Constants ========
     // SUI/USD price feed ID from Pyth Network
     const PYTH_PRICE_FEED_ID: vector<u8> = x"50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266";
-    const PRICE_FEED_MAX_AGE: u64 = 60; // Price must be no older than 60 seconds
+    const PRICE_FEED_MAX_AGE: u64 = 1800; // Price must be no older than 30 minutes
     const INVOICE_VALIDITY_PERIOD: u64 = 1800000; // 30 minutes in milliseconds
 
     // ======== Init Function ========
@@ -346,6 +346,11 @@ module gugupay::payment_service {
     public fun get_merchant_owner(store: &PaymentStore, merchant_id: ID): address {
         let merchant = table::borrow(&store.merchants, merchant_id);
         merchant.owner
+    }
+
+    public fun get_invoice_amount_sui(store: &PaymentStore, invoice_id: ID): u64 {
+        let invoice = table::borrow(&store.invoices, invoice_id);
+        invoice.amount_sui
     }
 
     public fun get_invoice_merchant_id(store: &PaymentStore, invoice_id: ID): ID {

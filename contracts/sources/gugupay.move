@@ -38,7 +38,11 @@ module gugupay::payment_service {
     public struct InvoiceCreated has copy, drop {
         invoice_id: ID,
         merchant_id: ID,
+        description: String,
         amount_usd: u64,
+        amount_sui: u64,
+        exchange_rate: u64,
+        rate_timestamp: u64,
         expires_at: u64
     }
 
@@ -218,7 +222,11 @@ module gugupay::payment_service {
         event::emit(InvoiceCreated {
             invoice_id: id,
             merchant_id,
+            description: string::utf8(description),
             amount_usd,
+            amount_sui,
+            exchange_rate,
+            rate_timestamp: current_time,
             expires_at
         });
     }

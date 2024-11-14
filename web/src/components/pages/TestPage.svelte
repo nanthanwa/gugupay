@@ -28,7 +28,7 @@
 
   const createInvoice = async () => {
     const merchantId =
-      "0x3dadb8abe022bc47692c84961579cbe0e7c7f1862ef0d863fd73cee8a51f836f";
+      "0x750b10c3c0b210078d8d06ea7aa97d2237264160c36baaacdd734236dd55a329";
     const txb = new Transaction();
     const priceUpdateData =
       await gugupayClient.connection.getPriceFeedsUpdateData([
@@ -84,6 +84,15 @@
     const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
     console.log('merchantIds', merchantIds);
   }
+
+  const getInvoicesByMerchant = async () => {
+    const merchantId = "0x750b10c3c0b210078d8d06ea7aa97d2237264160c36baaacdd734236dd55a329";
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const invoiceIds = await gugupayClient.getMerchantInvoices(walletAccount.value?.walletAccount.address, merchantId);
+    console.log('invoiceIds', invoiceIds);
+  }
 </script>
 
 
@@ -109,7 +118,11 @@
       >getMerchantsByOwner</button
     >
   </div>
-
+  <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
+    <button class="btn btn-primary" onclick={getInvoicesByMerchant}
+      >getInvoicesByMerchant</button
+    >
+  </div>
 {:else}
   <div
     class="flex h-[70vh] w-full flex-col items-center justify-center gap-8 px-4 py-6 lg:px-6"

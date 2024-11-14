@@ -241,4 +241,38 @@ export class GugupayClient {
     }
     return merchantIds;
   };
+
+  getMerchantInvoices = async (ownerAddress: string, merchantId: string) => {
+    const tx = new Transaction2();
+    tx.moveCall({
+      target: `${this.PACKAGE_ID}::payment_service::get_merchant_invoices`,
+      arguments: [
+        tx.object(this.SHARED_ID),
+        tx.object(merchantId),
+        tx.pure.option('bool', null),
+      ],
+    });
+
+    // Execute the transaction
+    const resultCall = await this.SuiClient.devInspectTransactionBlock({
+      sender: ownerAddress,
+      transactionBlock: tx,
+    });
+
+    const invoiceIds: string[] = [];
+    if (
+      resultCall.results &&
+      resultCall.results[0] &&
+      resultCall.results[0].returnValues
+    ) {
+      const bufferRaw = resultCall.results[0].returnValues[0][0];
+      const returnValueBuffer = Buffer.from(bufferRaw);
+
+      for (let i = 1; i < returnValueBuffer.length; i += 32) {
+        const id = returnValueBuffer.slice(i, i + 32).toString('hex');
+        invoiceIds.push('0x' + id);
+      }
+    }
+    return invoiceIds;
+  };
 }

@@ -45,14 +45,14 @@ Represents a payment request with:
 
 ```bash
 # Replace these with your deployed contract values
-PACKAGE_ID=0xd5ed14767ae11ddabaf0502839e83bcf628e5a8b8bbc584ecf8de98d9ef3b686
-SHARED_ID=0x80976d983484dee65f26e4c5c0d8e1ee610f977c233f73b554db7d01d20b4a33
-MERCHANT_ID=0x134d1e8e4cfcd79e3996862ed77f4ee39c32cf9afbfb41417ca4dec9ed010ca9
-INVOICE_ID=0xa664eaa910490c3e054b50841a81e511e3d118f853e5f265cea7229751300fa4
+PACKAGE_ID=0xc2e4d01c0cd7bbf92e8b34024652c3278b73e24f0d4a226fb37ba9b921b29dfb
+SHARED_ID=0xbd6a5ca84b2783215a5565bd8cb1a474bec424a6fd46fa2c5ce1221ed28852db
+MERCHANT_ID=0x2edf1c87f43c8060a82b248bc8cc06b8789f86ababae4b0e8ae6575f2a3ce71a
+INVOICE_ID=0x11fcc2a4a690b983dfbd73e49759b10a658251e737854e46d32ec68d44a5cef6
 CLOCK_ID=0x6
 PYTH_PACKAGE_ID=0xf7114cc10266d90c0c9e4b84455bddf29b40bd78fe56832c7ac98682c3daa95b
 PYTH_PRICE_FEED_ID=0xf47329f4344f3bf0f8e436e2f7b485466cff300f12a166563995d3888c296a94
-COIN_ID=0xbc4304f48baf53d21243c9d879211036cac0a8dd92fd2254932a7ba8117dc97a
+COIN_ID=0x68423564a8aeaf402e7676a22e94a7747973e13caa63a22cba28ea6f71a1fb06
 WORMHOLE_STATE_ID=0xebba4cc4d614f7a7cdbe883acc76d1cc767922bc96778e7b68be0d15fce27c02
 PYTH_STATE_ID=0x2d82612a354f0b7e52809fc2845642911c7190404620cec8688f68808f8800d8
 PRICE_INFO_OBJECT_ID=0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0
@@ -98,16 +98,16 @@ sui client call \
 ```
 
 sui client call \
-  --package $PACKAGE_ID \
+ --package $PACKAGE_ID \
   --module payment_service \
   --function create_invoice \
   --args \
     "$CLOCK_ID" \
-    "0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0" \
-  --gas-budget 10000000
-
+ "0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0" \
+ --gas-budget 10000000
 
 #### Create a PTB that:
+
 1. Updates Pyth price feed
 2. Uses the result to create an invoice
 
@@ -137,7 +137,6 @@ sui client ptb \
 --assign price_info \
 --gas-budget 100000000
 ```
-
 
 ### Pay an Invoice
 

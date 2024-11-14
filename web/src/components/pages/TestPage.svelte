@@ -77,6 +77,13 @@
         console.error("errpr", err);
       });
   }
+  const getMerchantsByOwner = async () => {
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
+    console.log('merchantIds', merchantIds);
+  }
 </script>
 
 
@@ -95,6 +102,11 @@
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
     <button class="btn btn-primary" onclick={payInvoice}
       >payInvoice</button
+    >
+  </div>
+  <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
+    <button class="btn btn-primary" onclick={getMerchantsByOwner}
+      >getMerchantsByOwner</button
     >
   </div>
 

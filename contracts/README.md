@@ -45,9 +45,9 @@ Represents a payment request with:
 
 ```bash
 # Replace these with your deployed contract values
-PACKAGE_ID=0x5085a8822093cfcc063d0207a0c7a4e044873bf31d162d2ec5840348179c6b5a
-SHARED_ID=0x366ab7dbb1afac06b3a83523a86cfeb6ebceb9458389030843608d47e49718df
-MERCHANT_ID=0x2edf1c87f43c8060a82b248bc8cc06b8789f86ababae4b0e8ae6575f2a3ce71a
+PACKAGE_ID=0x8aefe377dc9d3637976085ec2d0faf56ec8de9d0f699ef279003edb4e1796cb8
+SHARED_ID=0xdaca5fab6da2228cb009be9088126ed00412051d0bb86fc59583f5c74619fd02
+MERCHANT_ID=0x0e013f7fb3464db092e82fe9b676e78fbf4feb07340157356ff4869976b0e693
 INVOICE_ID=0x124e2b6ec779a2c6c80c928fe0192584851c5c58f23f4aa6ec59fc39be7d1862
 CLOCK_ID=0x6
 PYTH_PACKAGE_ID=0xf7114cc10266d90c0c9e4b84455bddf29b40bd78fe56832c7ac98682c3daa95b
@@ -56,6 +56,7 @@ COIN_ID=0x5b469940eecfc4a30228246a548de4ce1a627d05c86a854a18f011a9d4ae8017
 WORMHOLE_STATE_ID=0xebba4cc4d614f7a7cdbe883acc76d1cc767922bc96778e7b68be0d15fce27c02
 PYTH_STATE_ID=0x2d82612a354f0b7e52809fc2845642911c7190404620cec8688f68808f8800d8
 PRICE_INFO_OBJECT_ID=0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0
+OWNER_ADDRESS=0x45c3de7e89c9f3acc97086dc522a29a6ec2212f9fa75b11334fff8a19ca83cde
 ```
 
 ## CLI Commands
@@ -75,6 +76,14 @@ sui client call \
     "Merchant Description" \
     "https://example.com/logo.png" \
     "https://api.merchant.com/callback" \
+  --gas-budget 10000000
+```
+
+### Get Merchant by owner address
+
+```
+sui client call --package $PACKAGE_ID --module payment_service --function get_merchant_by_owner \
+  --args "$SHARED_ID" "$OWNER_ADDRESS" \
   --gas-budget 10000000
 ```
 
@@ -105,38 +114,6 @@ sui client call \
     "$CLOCK_ID" \
  "0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0" \
  --gas-budget 10000000
-
-#### Create a PTB that:
-
-1. Updates Pyth price feed
-2. Uses the result to create an invoice
-
-```bash
-sui client ptb \
---move-call pyth::pyth::update_price_feeds \
-"[price_update_data]" "[price_feed_ids]" \
---assign price_info \
---move-call payment_service::payment_service::create_invoice \
-"$SHARED_ID" "$MERCHANT_ID" "Invoice Description" 10 "$CLOCK_ID" price_info \
---gas-budget 100000000
-
-
-# Add --preview flag to see the transaction sequence without executing
-sui client ptb \
---move-call pyth::pyth::update_price_feeds \
-"$WORMHOLE_STATE_ID" "$PYTH_STATE_ID" \
---assign price_info \
---move-call "$PACKAGE_ID"::payment_service::create_invoice \
-"$SHARED_ID" "$MERCHANT_ID" "Invoice Description" 10 "$CLOCK_ID" price_info \
---gas-budget 100000000
-
-
-sui client ptb \
---move-call "$PYTH_PACKAGE_ID"::pyth::update_price_feeds \
-"$WORMHOLE_STATE_ID" "$PYTH_STATE_ID" \
---assign price_info \
---gas-budget 100000000
-```
 
 ### Pay an Invoice
 

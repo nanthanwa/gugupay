@@ -1,5 +1,7 @@
 import {SuiClient, getFullnodeUrl} from '@mysten/sui/client';
 import {Transaction} from '@mysten/sui/dist/cjs/transactions';
+import {Transaction as Transaction2} from '@mysten/sui/transactions';
+import {Buffer} from 'buffer';
 import {
   TESTNET_PACKAGE_ID,
   TESTNET_SHARED_ID,
@@ -207,5 +209,36 @@ export class GugupayClient {
       ],
     });
     return txb;
+  };
+
+  getMerchantsByOwner = async (ownerAddress: string) => {
+    const tx = new Transaction2();
+
+    tx.moveCall({
+      target: `${this.PACKAGE_ID}::payment_service::get_merchant_by_owner`,
+      arguments: [tx.object(this.SHARED_ID), tx.pure.address(ownerAddress)],
+    });
+
+    // Execute the transaction
+    const resultCall = await this.SuiClient.devInspectTransactionBlock({
+      sender: ownerAddress,
+      transactionBlock: tx,
+    });
+
+    const merchantIds = [];
+    if (
+      resultCall.results &&
+      resultCall.results[0] &&
+      resultCall.results[0].returnValues
+    ) {
+      const bufferRaw = resultCall.results[0].returnValues[0][0];
+      const returnValueBuffer = Buffer.from(bufferRaw);
+
+      for (let i = 1; i < returnValueBuffer.length; i += 32) {
+        const id = returnValueBuffer.slice(i, i + 32).toString('hex');
+        merchantIds.push('0x' + id);
+      }
+    }
+    return merchantIds;
   };
 }

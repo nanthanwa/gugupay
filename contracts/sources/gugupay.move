@@ -25,8 +25,7 @@ module gugupay::payment_service {
     const EInsufficientPayment: u64 = 3;
     const EInvalidAmount: u64 = 4;
     const EInvalidExpiryTime: u64 = 5;
-    const EInvalidID: u64 = 6;
-    const EInvalidPriceFeed: u64 = 7;
+    const EInvalidPriceFeed: u64 = 6;
 
     // ======== Events ========
     public struct MerchantCreated has copy, drop {
@@ -72,7 +71,9 @@ module gugupay::payment_service {
         merchants: Table<ID, Merchant>,
         invoices: Table<ID, Invoice>,
         last_merchant_id: Option<ID>,
-        last_invoice_id: Option<ID>
+        last_invoice_id: Option<ID>,
+        merchant_ids: vector<ID>,
+        merchant_invoices: Table<ID, vector<ID>>
     }
 
     public struct Merchant has store {
@@ -110,7 +111,9 @@ module gugupay::payment_service {
             merchants: table::new(ctx),
             invoices: table::new(ctx),
             last_merchant_id: option::none(),
-            last_invoice_id: option::none()
+            last_invoice_id: option::none(),
+            merchant_ids: vector::empty<ID>(),
+            merchant_invoices: table::new(ctx)
         };
         transfer::share_object(store);
     }
@@ -148,6 +151,8 @@ module gugupay::payment_service {
 
         table::add(&mut store.merchants, id, merchant);
         store.last_merchant_id = option::some(id);
+        vector::push_back(&mut store.merchant_ids, id);
+        table::add(&mut store.merchant_invoices, id, vector::empty<ID>());
 
         event::emit(MerchantCreated {
             merchant_id: id,
@@ -218,6 +223,10 @@ module gugupay::payment_service {
 
         table::add(&mut store.invoices, id, invoice);
         store.last_invoice_id = option::some(id);
+        
+        // Add invoice ID to merchant's invoice list
+        let merchant_invoices = table::borrow_mut(&mut store.merchant_invoices, merchant_id);
+        vector::push_back(merchant_invoices, id);
 
         event::emit(InvoiceCreated {
             invoice_id: id,
@@ -368,6 +377,23 @@ module gugupay::payment_service {
         balance::value(&merchant.balance)
     }
 
+    public fun get_merchant_by_owner(store: &PaymentStore, owner: address): vector<ID> {
+        let mut merchant_ids = vector::empty<ID>();
+        let mut i = 0;
+        let len = vector::length(&store.merchant_ids);
+        
+        while (i < len) {
+            let merchant_id = *vector::borrow(&store.merchant_ids, i);
+            let merchant = table::borrow(&store.merchants, merchant_id);
+            if (merchant.owner == owner) {
+                vector::push_back(&mut merchant_ids, merchant_id);
+            };
+            i = i + 1;
+        };
+
+        merchant_ids
+    }
+
     // Add these helper functions after the view functions
     #[test_only]
     public(package) fun get_merchant_id_for_testing(store: &PaymentStore): ID {
@@ -390,5 +416,72 @@ module gugupay::payment_service {
     #[test_only]
     public(package) fun get_invoice_for_testing(store: &PaymentStore, invoice_id: ID): &Invoice {
         table::borrow(&store.invoices, invoice_id)
+    }
+
+    // Add these new view functions after the existing view functions
+
+    /// Get all invoice IDs for a merchant
+    /// filter_paid: Option<bool> - if Some(true) returns only paid invoices, 
+    /// if Some(false) returns only unpaid invoices, if None returns all invoices
+    public fun get_merchant_invoices(
+        store: &PaymentStore, 
+        merchant_id: ID, 
+        filter_paid: Option<bool>
+    ): vector<ID> {
+        let mut result = vector::empty<ID>();
+        
+        // Verify merchant exists
+        assert!(table::contains(&store.merchants, merchant_id), ENotMerchantOwner);
+        
+        let merchant_invoices = table::borrow(&store.merchant_invoices, merchant_id);
+        let len = vector::length(merchant_invoices);
+        let mut i = 0;
+        
+        while (i < len) {
+            let invoice_id = *vector::borrow(merchant_invoices, i);
+            let invoice = table::borrow(&store.invoices, invoice_id);
+            
+            if (should_include_invoice(invoice.is_paid, &filter_paid)) {
+                vector::push_back(&mut result, invoice_id);
+            };
+            
+            i = i + 1;
+        };
+        
+        result
+    }
+
+    /// Helper function to determine if an invoice should be included based on filter
+    fun should_include_invoice(is_paid: bool, filter: &Option<bool>): bool {
+        if (option::is_none(filter)) {
+            true // Include all if no filter
+        } else {
+            let filter_value = *option::borrow(filter);
+            is_paid == filter_value // Include only if matches filter
+        }
+    }
+
+    /// Get invoice details
+    public fun get_invoice_details(store: &PaymentStore, invoice_id: ID): (
+        ID,        // merchant_id
+        String,    // description
+        u64,       // amount_usd
+        u64,       // amount_sui
+        u64,       // exchange_rate
+        u64,       // rate_timestamp
+        u64,       // expires_at
+        bool       // is_paid
+    ) {
+        let invoice = table::borrow(&store.invoices, invoice_id);
+        (
+            invoice.merchant_id,
+            invoice.description,
+            invoice.amount_usd,
+            invoice.amount_sui,
+            invoice.exchange_rate,
+            invoice.rate_timestamp,
+            invoice.expires_at,
+            invoice.is_paid
+        )
     }
 }

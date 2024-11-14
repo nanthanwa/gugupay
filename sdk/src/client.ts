@@ -148,6 +148,85 @@ export class GugupayClient {
     return txb;
   };
 
+  getInvoiceDetails = async (
+    ownerAddress: string,
+    invoiceId: string,
+  ): Promise<{
+    merchantId: string;
+    description: string;
+    amountUsd: number;
+    amountSui: number;
+    exchangeRate: number;
+    rateTimestamp: number;
+    expiresAt: number;
+    isPaid: boolean;
+  }> => {
+    const tx = new Transaction2();
+
+    tx.moveCall({
+      target: `${this.PACKAGE_ID}::payment_service::get_invoice_details`,
+      arguments: [tx.object(this.SHARED_ID), tx.object(invoiceId)],
+    });
+
+    // Execute the transaction
+    const resultCall = await this.SuiClient.devInspectTransactionBlock({
+      sender: ownerAddress,
+      transactionBlock: tx,
+    });
+
+    const invoiceDetails = {
+      merchantId: '',
+      description: '',
+      amountUsd: 0,
+      amountSui: 0,
+      exchangeRate: 0,
+      rateTimestamp: 0,
+      expiresAt: 0,
+      isPaid: false,
+    };
+    if (
+      resultCall.results &&
+      resultCall.results[0] &&
+      resultCall.results[0].returnValues
+    ) {
+      let merchantIdBuffer = resultCall.results[0].returnValues[0][0];
+      const returnValueBuffer = Buffer.from(merchantIdBuffer);
+      const merchantId = returnValueBuffer.slice(0, 32).toString('hex');
+      const descriptionBuffer = resultCall.results[0].returnValues[1][0];
+      const returnValueBuffer2 = Buffer.from(descriptionBuffer);
+      const description = returnValueBuffer2.toString();
+      const amountUsdBuffer = resultCall.results[0].returnValues[2][0];
+      const returnValueBuffer3 = Buffer.from(amountUsdBuffer);
+      const amountUsd = returnValueBuffer3.readBigUInt64LE(0);
+      const amountSuiBuffer = resultCall.results[0].returnValues[3][0];
+      const returnValueBuffer4 = Buffer.from(amountSuiBuffer);
+      const amountSui = returnValueBuffer4.readBigUInt64LE(0);
+      const exchangeRateBuffer = resultCall.results[0].returnValues[4][0];
+      const returnValueBuffer5 = Buffer.from(exchangeRateBuffer);
+      const exchangeRate = returnValueBuffer5.readBigUInt64LE(0);
+      const rateTimestampBuffer = resultCall.results[0].returnValues[5][0];
+      const returnValueBuffer6 = Buffer.from(rateTimestampBuffer);
+      const rateTimestamp = returnValueBuffer6.readBigUInt64LE(0);
+      const expiresAtBuffer = resultCall.results[0].returnValues[6][0];
+      const returnValueBuffer7 = Buffer.from(expiresAtBuffer);
+      const expiresAt = returnValueBuffer7.readBigUInt64LE(0);
+      const isPaidBuffer = resultCall.results[0].returnValues[7][0];
+      const returnValueBuffer8 = Buffer.from(isPaidBuffer);
+      const isPaid = returnValueBuffer8.readUInt8(0) === 1;
+      Object.assign(invoiceDetails, {
+        merchantId: `0x${merchantId}`,
+        description,
+        amountUsd: Number(amountUsd),
+        amountSui: Number(amountSui),
+        exchangeRate: Number(exchangeRate),
+        rateTimestamp: Number(rateTimestamp),
+        expiresAt: Number(expiresAt),
+        isPaid,
+      });
+    }
+    return invoiceDetails;
+  };
+
   getInvoice = async (invoiceId: string) => {
     return this.SuiClient.getObject({
       id: invoiceId,
@@ -174,19 +253,12 @@ export class GugupayClient {
     txb,
     invoiceId,
     amountSui,
-    invoiceId2,
   }: {
     txb: Transaction;
     invoiceId: string;
     amountSui: number;
-    invoiceId2: string;
   }) => {
-    // Get invoice details to determine payment amount
-    // const merchant_id = await this.getMerchantByInvoiceId(invoiceId);
-    // console.log('merchant_id', merchant_id);
-    // console.log('invoiceId', invoiceId);
-
-    console.log('invoiceId', invoiceId2);
+    console.log('invoiceId', invoiceId);
     console.log('amountSui', amountSui);
 
     // Split coin to get exact payment amount
@@ -195,7 +267,7 @@ export class GugupayClient {
 
     console.log('splitCoin', splitCoin);
     console.log('this.SHARED_ID', this.SHARED_ID);
-    console.log('invoiceId2', invoiceId2);
+    console.log('invoiceId', invoiceId);
     txb.setGasBudget(10000000);
     txb.moveCall({
       package: this.PACKAGE_ID,
@@ -203,7 +275,7 @@ export class GugupayClient {
       function: 'pay_invoice',
       arguments: [
         txb.object(this.SHARED_ID),
-        txb.object(invoiceId2),
+        txb.object(invoiceId),
         txb.object(splitCoin),
         txb.object(this.CLOCK_ID),
       ],

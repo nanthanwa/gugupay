@@ -57,16 +57,17 @@
   };
 
   const payInvoice = async () => {
-    const invoiceId = "0x682e1dc49d704f2a06401a8fa3bfa7efc5933d82e7574fe6e77250098fa0a8ad"
-    const invoice = await gugupayClient.getInvoice(invoiceId);
-    const amountSui = invoice.data?.content?.fields?.value.fields.amount_sui;
-    const invoiceId2 = invoice.data?.content.fields.value.fields.id;
+    const invoiceId = "0x1a8a65b39d466af91dc1165a99f75c6bd38d41f1e5fdc9ca2956aab042eeff2c"
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const invoiceDetails = await gugupayClient.getInvoiceDetails(walletAccount.value?.walletAccount.address, invoiceId);
+
     const txb = new Transaction();
     gugupayClient.payInvoice({
       txb,
       invoiceId,
-      amountSui,
-      invoiceId2,
+      amountSui: invoiceDetails.amountSui,
     });
     // console.log('txb', txb);
     signAndExecuteTransactionBlock(txb)

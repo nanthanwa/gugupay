@@ -79,14 +79,14 @@ const { isWallet } = Astro.props;
               <div class="dropdown dropdown-hover">
                 <button
                   tabindex="0"
-                  class="btn bg-base-100 shadow-none lg:bg-base-200"
+                  class="btn rounded-none bg-base-100 shadow-none lg:bg-base-200"
                 >
                   {label}
                   <span class="lg:hidden">&nbsp;&nbsp;&darr;</span>
                 </button>
                 <ul
                   tabindex="0"
-                  class="menu dropdown-content z-[1] w-52 rounded-box bg-base-100 p-2 shadow"
+                  class="menu dropdown-content z-[1] w-52 rounded-none bg-base-100 p-2 shadow"
                 >
                   {items.map(({ label: label2, link: link2 }) => {
                     const target = link2.startsWith("http")

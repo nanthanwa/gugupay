@@ -1,26 +1,50 @@
 <script lang="ts">
+  import { gugupayClient } from "@client/client";
   import MerchantModal from "@components/common/MerchantModal.svelte";
-  import ConnectButton from "@components/wallet/ConnectButton.svelte";
-  import { walletStatus } from "@components/wallet/SuiModule.svelte";
+  import WalletConnectGuard from "@components/common/WalletConnectGuard.svelte";
+  import {
+    walletAccount,
+    walletStatus,
+  } from "@components/wallet/SuiModule.svelte";
   import { suiToString } from "@utils/sui";
 
-  let merchantModal: MerchantModal;
+  let merchantModal: MerchantModal | undefined = $state();
+  const merchants = $state([]);
+
+  async function init() {
+    if (!walletStatus.isConnected || !walletAccount.value) {
+      throw Error("wallet not connect");
+    }
+
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value.walletAccount.address,
+    );
+
+    for (let i = 0; i < merchantIds.length; i++) {
+      const merchantId = merchantIds[i];
+      gugupayClient.getMerchantDetails(
+        walletAccount.value.walletAccount.address,
+        merchantId,
+      );
+    }
+  }
 </script>
 
-{#if walletStatus.isConnected}
+<WalletConnectGuard>
+  <div class="hidden">{init()}</div>
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
     <div class="flex w-full flex-row items-center justify-between">
       <div class="text-xl font-bold">Merchants</div>
       <button
         class="btn btn-primary"
         onclick={() => {
-          merchantModal.open();
+          merchantModal?.open();
         }}>New Merchant</button
       >
     </div>
     <div class="w-full">
       <div class="flex flex-col gap-2">
-        {#if false}
+        {#if merchants.length > 0}
           <div
             class="card bg-base-100 flex cursor-pointer flex-col items-start justify-start gap-8 rounded-2xl p-4 shadow-xl lg:flex-row lg:items-center"
           >
@@ -49,13 +73,4 @@
     </div>
   </div>
   <MerchantModal bind:this={merchantModal} />
-{:else}
-  <div
-    class="flex h-[70vh] w-full flex-col items-center justify-center gap-8 px-4 py-6 lg:px-6"
-  >
-    <div class="text-lg">Your Sui Wallet is not connect.</div>
-    <ConnectButton
-      class="btn btn-primary border-base-300 w-full max-w-screen-md rounded-full"
-    ></ConnectButton>
-  </div>
-{/if}
+</WalletConnectGuard>

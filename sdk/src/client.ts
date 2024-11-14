@@ -1,4 +1,8 @@
-import {SuiClient, getFullnodeUrl} from '@mysten/sui/client';
+import {
+  ObjectResponseError,
+  SuiClient,
+  getFullnodeUrl,
+} from '@mysten/sui/client';
 import {Transaction} from '@mysten/sui/dist/cjs/transactions';
 import {Transaction as Transaction2} from '@mysten/sui/transactions';
 import {Buffer} from 'buffer';
@@ -212,24 +216,86 @@ export class GugupayClient {
     return invoiceDetails;
   };
 
+  getMerchantDetails = async (
+    ownerAddress: string,
+    merchantId: string,
+  ): Promise<{
+    id: string;
+    name: string;
+    description: string;
+    logo_url: string;
+    callback_url: string;
+  }> => {
+    const tx = new Transaction2();
+
+    tx.moveCall({
+      target: `${this.PACKAGE_ID}::payment_service::get_merchant_details`,
+      arguments: [tx.object(this.SHARED_ID), tx.object(merchantId)],
+    });
+
+    // Execute the transaction
+    const resultCall = await this.SuiClient.devInspectTransactionBlock({
+      sender: ownerAddress,
+      transactionBlock: tx,
+    });
+
+    const merchantDetails = {
+      id: '',
+      name: '',
+      description: '',
+      logo_url: '',
+      callback_url: '',
+    };
+    if (
+      resultCall.results &&
+      resultCall.results[0] &&
+      resultCall.results[0].returnValues
+    ) {
+      const merchantId = Buffer.from(resultCall.results[0].returnValues[0][0])
+        .slice(0, 32)
+        .toString('hex');
+      const name = Buffer.from(
+        resultCall.results[0].returnValues[1][0],
+      ).toString();
+      const description = Buffer.from(
+        resultCall.results[0].returnValues[2][0],
+      ).toString();
+      const logo_url = Buffer.from(
+        resultCall.results[0].returnValues[2][0],
+      ).toString();
+      const callback_url = Buffer.from(
+        resultCall.results[0].returnValues[2][0],
+      ).toString();
+      Object.assign(merchantDetails, {
+        merchantId: `0x${merchantId}`,
+        name,
+        description,
+        logo_url,
+        callback_url,
+      });
+    }
+    return merchantDetails;
+  };
+
   getInvoice = async (invoiceId: string) => {
     return this.SuiClient.getObject({
       id: invoiceId,
       options: {
         showContent: true,
       },
-    }) as any;
-    // }) as Promise<SuiObjectResponse<InvoiceObjectData>>;
+    }) as Promise<{
+      data?: InvoiceObjectData | null;
+      error?: ObjectResponseError | null;
+    }>;
   };
 
-  getMerchantByInvoiceId = async (invoiceId: string) => {
+  getMerchantIdByInvoiceId = async (invoiceId: string) => {
     const invoice = await this.getInvoice(invoiceId);
-    if (invoice.data?.content?.dataType === 'package') {
+    if (invoice.data?.content?.dataType !== 'moveObject') {
       throw new Error('Invoice not found');
     }
 
     const invoiceData = invoice.data as InvoiceObjectData;
-    console.log('invoiceData', invoiceData);
 
     return invoiceData.content?.fields?.value.fields.merchant_id;
   };

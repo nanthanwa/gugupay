@@ -13,7 +13,6 @@
   import type { SuiSignAndExecuteTransactionOutput } from "@mysten/wallet-standard";
   import { gugupayClient } from "@client/client";
   import type { WalletAccountData } from "@typedef/sui";
-  import type { MerchantObjectData } from "@gugupay/sdk";
 
   const selectedWalletKey = "selectedWallet";
 
@@ -85,17 +84,9 @@
               account.address,
             );
 
-            // get merchants objects
-            const getMerchantObjectsResp =
-              await gugupayClient.getMerchantObjects(account.address);
-            let merchantObjs: MerchantObjectData[] = getMerchantObjectsResp.data
-              .filter((obj) => obj.data)
-              .map((obj) => obj.data as unknown as MerchantObjectData);
-
             return {
               walletAccount: account,
               suiBalance: BigInt(suiCoinBalance.totalBalance),
-              merchantObjs: merchantObjs,
             };
           },
         );

@@ -98,7 +98,7 @@ module gugupay::payment_service {
         is_paid: bool
     }
 
-     // ======== Constants ========
+    // ======== Constants ========
     // SUI/USD price feed ID from Pyth Network
     const PYTH_PRICE_FEED_ID: vector<u8> = x"50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266";
     const PRICE_FEED_MAX_AGE: u64 = 1800; // Price must be no older than 30 minutes
@@ -149,16 +149,23 @@ module gugupay::payment_service {
             balance: balance::zero()
         };
 
-        table::add(&mut store.merchants, id, merchant);
-        store.last_merchant_id = option::some(id);
+        table::add(&mut store.merchants, id, merchant);store.last_merchant_id = option::some(
+            id
+        );
         vector::push_back(&mut store.merchant_ids, id);
-        table::add(&mut store.merchant_invoices, id, vector::empty<ID>());
+        table::add(
+            &mut store.merchant_invoices,
+            id,
+            vector::empty<ID>()
+        );
 
-        event::emit(MerchantCreated {
-            merchant_id: id,
-            name: name_str,
-            owner
-        });
+        event::emit(
+            MerchantCreated {
+                merchant_id: id,
+                name: name_str,
+                owner
+            }
+        );
     }
 
     public entry fun create_invoice(
@@ -171,36 +178,48 @@ module gugupay::payment_service {
         ctx: &mut TxContext
     ) {
         let merchant = table::borrow(&store.merchants, merchant_id);
-        assert!(tx_context::sender(ctx) == merchant.owner, ENotMerchantOwner);
+        assert!(
+            tx_context::sender(ctx) == merchant.owner,
+            ENotMerchantOwner
+        );
         assert!(amount_usd > 0, EInvalidAmount);
-        
+
         // Get SUI/USD price from Pyth Oracle
         let price_struct = pyth::get_price_no_older_than(
-            price_info_object, 
-            clock, 
+            price_info_object,
+            clock,
             PRICE_FEED_MAX_AGE
         );
-        
+
         // Verify this is the correct SUI/USD price feed
-        let price_info = price_info::get_price_info_from_price_info_object(price_info_object);
-        let price_id = price_identifier::get_bytes(&price_info::get_price_identifier(&price_info));
-        assert!(price_id == PYTH_PRICE_FEED_ID, EInvalidPriceFeed);
-        
+        let price_info = price_info::get_price_info_from_price_info_object(
+            price_info_object
+        );
+        let price_id = price_identifier::get_bytes(
+            &price_info::get_price_identifier(&price_info)
+        );
+        assert!(
+            price_id == PYTH_PRICE_FEED_ID,
+            EInvalidPriceFeed
+        );
+
         // Get price and convert considering decimals
         let price_i64 = price::get_price(&price_struct);
         let expo_i64 = price::get_expo(&price_struct);
-        
+
         // Convert price to u64 (assuming price is positive)
         let price_u64 = i64::get_magnitude_if_positive(&price_i64);
         let expo = i64::get_magnitude_if_negative(&expo_i64); // Expo is typically negative
-        
+
         // Calculate required SUI amount
         let decimals = 9; // SUI decimals
         let price_decimals = (expo as u8);
         let price_multiplier = math::pow(10, price_decimals);
-        
-        let exchange_rate = price_u64;  // Store the raw exchange rate
-        let amount_sui = (amount_usd * (math::pow(10, decimals) as u64) * price_multiplier) / price_u64;
+
+        let exchange_rate = price_u64; // Store the raw exchange rate
+        let amount_sui = (
+            amount_usd * (math::pow(10, decimals) as u64) * price_multiplier
+        ) / price_u64;
 
         let current_time = clock::timestamp_ms(clock);
         let expires_at = current_time + INVOICE_VALIDITY_PERIOD;
@@ -215,29 +234,35 @@ module gugupay::payment_service {
             description: string::utf8(description),
             amount_usd,
             amount_sui,
-            exchange_rate,         // Store the exchange rate
-            rate_timestamp: current_time,  // Store when we got the rate
+            exchange_rate, // Store the exchange rate
+            rate_timestamp: current_time, // Store when we got the rate
             expires_at,
             is_paid: false
         };
 
-        table::add(&mut store.invoices, id, invoice);
-        store.last_invoice_id = option::some(id);
-        
+        table::add(&mut store.invoices, id, invoice);store.last_invoice_id = option::some(
+            id
+        );
+
         // Add invoice ID to merchant's invoice list
-        let merchant_invoices = table::borrow_mut(&mut store.merchant_invoices, merchant_id);
+        let merchant_invoices = table::borrow_mut(
+            &mut store.merchant_invoices,
+            merchant_id
+        );
         vector::push_back(merchant_invoices, id);
 
-        event::emit(InvoiceCreated {
-            invoice_id: id,
-            merchant_id,
-            description: string::utf8(description),
-            amount_usd,
-            amount_sui,
-            exchange_rate,
-            rate_timestamp: current_time,
-            expires_at
-        });
+        event::emit(
+            InvoiceCreated {
+                invoice_id: id,
+                merchant_id,
+                description: string::utf8(description),
+                amount_usd,
+                amount_sui,
+                exchange_rate,
+                rate_timestamp: current_time,
+                expires_at
+            }
+        );
     }
 
     public entry fun pay_invoice(
@@ -248,17 +273,33 @@ module gugupay::payment_service {
         ctx: &mut TxContext
     ) {
         let invoice = table::borrow_mut(&mut store.invoices, invoice_id);
-        let merchant = table::borrow_mut(&mut store.merchants, invoice.merchant_id);
-        
-        assert!(!invoice.is_paid, EInvoiceAlreadyPaid);
-        assert!(clock::timestamp_ms(clock) <= invoice.expires_at, EInvoiceExpired);
-        
+        let merchant = table::borrow_mut(
+            &mut store.merchants,
+            invoice.merchant_id
+        );
+
+        assert!(
+            !invoice.is_paid,
+            EInvoiceAlreadyPaid
+        );
+        assert!(
+            clock::timestamp_ms(clock) <= invoice.expires_at,
+            EInvoiceExpired
+        );
+
         let payment_value = coin::value(&payment);
-        assert!(payment_value >= invoice.amount_sui, EInsufficientPayment);
+        assert!(
+            payment_value >= invoice.amount_sui,
+            EInsufficientPayment
+        );
 
         // Split excess payment if any
         if (payment_value > invoice.amount_sui) {
-            let excess = coin::split(&mut payment, payment_value - invoice.amount_sui, ctx);
+            let excess = coin::split(
+                &mut payment,
+                payment_value - invoice.amount_sui,
+                ctx
+            );
             transfer::public_transfer(excess, tx_context::sender(ctx));
         };
 
@@ -269,12 +310,14 @@ module gugupay::payment_service {
         // Mark invoice as paid
         invoice.is_paid = true;
 
-        event::emit(InvoicePaid {
-            invoice_id,
-            merchant_id: invoice.merchant_id,
-            paid_by: tx_context::sender(ctx),
-            amount_sui: invoice.amount_sui
-        });
+        event::emit(
+            InvoicePaid {
+                invoice_id,
+                merchant_id: invoice.merchant_id,
+                paid_by: tx_context::sender(ctx),
+                amount_sui: invoice.amount_sui
+            }
+        );
     }
 
     public entry fun withdraw_balance(
@@ -283,10 +326,16 @@ module gugupay::payment_service {
         ctx: &mut TxContext
     ) {
         let merchant = table::borrow_mut(&mut store.merchants, merchant_id);
-        assert!(tx_context::sender(ctx) == merchant.owner, ENotMerchantOwner);
-        
+        assert!(
+            tx_context::sender(ctx) == merchant.owner,
+            ENotMerchantOwner
+        );
+
         let amount = balance::value(&merchant.balance);
-        let withdrawn = coin::from_balance(balance::split(&mut merchant.balance, amount), ctx);
+        let withdrawn = coin::from_balance(
+            balance::split(&mut merchant.balance, amount),
+            ctx
+        );
         transfer::public_transfer(withdrawn, merchant.owner);
     }
 
@@ -301,19 +350,24 @@ module gugupay::payment_service {
     ) {
         let merchant = table::borrow_mut(&mut store.merchants, merchant_id);
         // Verify sender is merchant owner
-        assert!(tx_context::sender(ctx) == merchant.owner, ENotMerchantOwner);
-        
+        assert!(
+            tx_context::sender(ctx) == merchant.owner,
+            ENotMerchantOwner
+        );
+
         // Update merchant details
         merchant.name = string::utf8(name);
         merchant.description = string::utf8(description);
         merchant.logo_url = string::utf8(logo_url);
         merchant.callback_url = string::utf8(callback_url);
 
-        event::emit(MerchantUpdated {
-            merchant_id: merchant.id,
-            name: merchant.name,
-            owner: merchant.owner
-        });
+        event::emit(
+            MerchantUpdated {
+                merchant_id: merchant.id,
+                name: merchant.name,
+                owner: merchant.owner
+            }
+        );
     }
 
     public entry fun update_invoice(
@@ -326,29 +380,43 @@ module gugupay::payment_service {
         ctx: &mut TxContext
     ) {
         let invoice = table::borrow_mut(&mut store.invoices, invoice_id);
-        let merchant = table::borrow(&store.merchants, invoice.merchant_id);
-        
+        let merchant = table::borrow(
+            &store.merchants,
+            invoice.merchant_id
+        );
+
         // Verify sender is merchant owner
-        assert!(tx_context::sender(ctx) == merchant.owner, ENotMerchantOwner);
-        
+        assert!(
+            tx_context::sender(ctx) == merchant.owner,
+            ENotMerchantOwner
+        );
+
         // Cannot update paid invoices
-        assert!(!invoice.is_paid, EInvoiceAlreadyPaid);
-        
+        assert!(
+            !invoice.is_paid,
+            EInvoiceAlreadyPaid
+        );
+
         // Validate new values
         assert!(amount_usd > 0, EInvalidAmount);
-        assert!(expires_at > clock::timestamp_ms(clock), EInvalidExpiryTime);
+        assert!(
+            expires_at > clock::timestamp_ms(clock),
+            EInvalidExpiryTime
+        );
 
         // Update invoice details
         invoice.description = string::utf8(description);
         invoice.amount_usd = amount_usd;
         invoice.expires_at = expires_at;
 
-        event::emit(InvoiceUpdated {
-            invoice_id,
-            merchant_id: invoice.merchant_id,
-            amount_usd,
-            expires_at
-        });
+        event::emit(
+            InvoiceUpdated {
+                invoice_id,
+                merchant_id: invoice.merchant_id,
+                amount_usd,
+                expires_at
+            }
+        );
     }
 
     // ======== View Functions ========
@@ -381,7 +449,7 @@ module gugupay::payment_service {
         let mut merchant_ids = vector::empty<ID>();
         let mut i = 0;
         let len = vector::length(&store.merchant_ids);
-        
+
         while (i < len) {
             let merchant_id = *vector::borrow(&store.merchant_ids, i);
             let merchant = table::borrow(&store.merchants, merchant_id);
@@ -397,19 +465,29 @@ module gugupay::payment_service {
     // Add these helper functions after the view functions
     #[test_only]
     public(package) fun get_merchant_id_for_testing(store: &PaymentStore): ID {
-        assert!(option::is_some(&store.last_merchant_id), 0);
+        assert!(
+            option::is_some(&store.last_merchant_id),
+            0
+        );
         *option::borrow(&store.last_merchant_id)
     }
 
     #[test_only]
-    public(package) fun get_invoice_id_for_testing(store: &PaymentStore, _merchant_id: ID): ID {
-        assert!(option::is_some(&store.last_invoice_id), 0);
+    public(package) fun get_invoice_id_for_testing(
+        store: &PaymentStore,
+        _merchant_id: ID
+    ): ID {
+        assert!(
+            option::is_some(&store.last_invoice_id),
+            0
+        );
         *option::borrow(&store.last_invoice_id)
     }
 
     // Add new helper functions for testing
     #[test_only]
-    public(package) fun get_merchant_for_testing(store: &PaymentStore, merchant_id: ID): &Merchant {
+    public(package) fun get_merchant_for_testing(store: &PaymentStore, merchant_id: ID)
+        : &Merchant {
         table::borrow(&store.merchants, merchant_id)
     }
 
@@ -421,40 +499,45 @@ module gugupay::payment_service {
     // Add these new view functions after the existing view functions
 
     /// Get all invoice IDs for a merchant
-    /// filter_paid: Option<bool> - if Some(true) returns only paid invoices, 
+    /// filter_paid: Option<bool> - if Some(true) returns only paid invoices,
     /// if Some(false) returns only unpaid invoices, if None returns all invoices
     public fun get_merchant_invoices(
-        store: &PaymentStore, 
-        merchant_id: ID, 
+        store: &PaymentStore,
+        merchant_id: ID,
         filter_paid: Option<bool>
     ): vector<ID> {
         let mut result = vector::empty<ID>();
-        
+
         // Verify merchant exists
-        assert!(table::contains(&store.merchants, merchant_id), ENotMerchantOwner);
-        
-        let merchant_invoices = table::borrow(&store.merchant_invoices, merchant_id);
+        assert!(
+            table::contains(&store.merchants, merchant_id),
+            ENotMerchantOwner
+        );
+
+        let merchant_invoices = table::borrow(
+            &store.merchant_invoices,
+            merchant_id
+        );
         let len = vector::length(merchant_invoices);
         let mut i = 0;
-        
+
         while (i < len) {
             let invoice_id = *vector::borrow(merchant_invoices, i);
             let invoice = table::borrow(&store.invoices, invoice_id);
-            
+
             if (should_include_invoice(invoice.is_paid, &filter_paid)) {
                 vector::push_back(&mut result, invoice_id);
             };
-            
+
             i = i + 1;
         };
-        
+
         result
     }
 
     /// Helper function to determine if an invoice should be included based on filter
     fun should_include_invoice(is_paid: bool, filter: &Option<bool>): bool {
-        if (option::is_none(filter)) {
-            true // Include all if no filter
+        if (option::is_none(filter)) { true // Include all if no filter
         } else {
             let filter_value = *option::borrow(filter);
             is_paid == filter_value // Include only if matches filter
@@ -462,15 +545,16 @@ module gugupay::payment_service {
     }
 
     /// Get invoice details
-    public fun get_invoice_details(store: &PaymentStore, invoice_id: ID): (
-        ID,        // merchant_id
-        String,    // description
-        u64,       // amount_usd
-        u64,       // amount_sui
-        u64,       // exchange_rate
-        u64,       // rate_timestamp
-        u64,       // expires_at
-        bool       // is_paid
+    public fun get_invoice_details(store: &PaymentStore, invoice_id: ID)
+        : (
+        ID, // merchant_id
+        String, // description
+        u64, // amount_usd
+        u64, // amount_sui
+        u64, // exchange_rate
+        u64, // rate_timestamp
+        u64, // expires_at
+        bool // is_paid
     ) {
         let invoice = table::borrow(&store.invoices, invoice_id);
         (
@@ -482,6 +566,25 @@ module gugupay::payment_service {
             invoice.rate_timestamp,
             invoice.expires_at,
             invoice.is_paid
+        )
+    }
+
+    /// Get merchant details
+    public fun get_merchant_details(store: &PaymentStore, merchant_id: ID)
+        : (
+        ID, // id
+        String, // name
+        String, // description
+        String, // logo_url
+        String, // callback_url
+    ) {
+        let merchant = table::borrow(&store.merchants, merchant_id);
+        (
+            merchant.id,
+            merchant.name,
+            merchant.description,
+            merchant.logo_url,
+            merchant.callback_url,
         )
     }
 }

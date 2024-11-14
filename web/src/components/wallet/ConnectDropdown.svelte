@@ -22,19 +22,11 @@
       <div class="text-xs lg:text-base">
         {shortAddress(walletAccount.value.walletAccount.address)}
       </div>
-      <div class="flex flex-col text-[0.5rem] lg:text-xs">
-        <div class="flex gap-x-1 lg:gap-x-2">
-          <div class="text-right">
-            {suiToString(walletAccount.value.suiBalance)}
-          </div>
-          <div class="text-left">SUI</div>
+      <div class="lg:gap-x flex gap-x-1 text-xs">
+        <div class="text-right">
+          {suiToString(walletAccount.value.suiBalance)}
         </div>
-        <div class="flex gap-x-1 lg:gap-x-2">
-          <div class="text-right">
-            {walletAccount.value.merchantObjs.length}
-          </div>
-          <div class="text-left">Merchant</div>
-        </div>
+        <div class="text-left">SUI</div>
       </div>
     </button>
     <div
@@ -51,19 +43,11 @@
             <div class="text-xs lg:text-base">
               {shortAddress(wallet.walletAccount.address)}
             </div>
-            <div class="flex flex-col text-[0.5rem] lg:text-xs">
-              <div class="flex gap-x-1 lg:gap-x-2">
-                <div class="text-right">
-                  {suiToString(wallet.suiBalance)}
-                </div>
-                <div class="text-left">SUI</div>
+            <div class="flex gap-x-1 text-xs lg:gap-x-2">
+              <div class="text-right">
+                {suiToString(wallet.suiBalance)}
               </div>
-              <div class="flex gap-x-1 lg:gap-x-2">
-                <div class="text-right">
-                  {wallet.merchantObjs.length}
-                </div>
-                <div class="text-left">Merchant</div>
-              </div>
+              <div class="text-left">SUI</div>
             </div>
           </button>
         {/if}

@@ -1,7 +1,7 @@
 ---
 import { pageDescription } from "@utils/configs";
 import MainLayout from "@layouts/main.astro";
-import PayPage from "@components/pages/PayPage.svelte";
+import MerchantPage from "@components/pages/MerchantPage.svelte";
 ---
 
 <MainLayout
@@ -9,5 +9,5 @@ import PayPage from "@components/pages/PayPage.svelte";
   description={pageDescription}
   isWallet={true}
 >
-  <PayPage client:load client:only="svelte" />
+  <MerchantPage client:load client:only="svelte" />
 </MainLayout>

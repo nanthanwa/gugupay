@@ -18,9 +18,6 @@ import {
 } from '@pythnetwork/pyth-sui-js';
 import {InvoiceObjectData} from './typedef';
 
-// TODO: Replace with actual type
-const merchantObjType = '0x3::staking_pool::StakedSui';
-
 export class GugupayClient {
   SuiClient: SuiClient;
   PYTH_CLIENT: SuiPythClient;
@@ -92,18 +89,6 @@ export class GugupayClient {
       ],
     });
     return txb;
-  };
-
-  getMerchantObjects = (address: string) => {
-    return this.SuiClient.getOwnedObjects({
-      owner: address,
-      filter: {
-        StructType: merchantObjType,
-      },
-      options: {
-        showContent: true,
-      },
-    });
   };
 
   updateOraclePrice = ({

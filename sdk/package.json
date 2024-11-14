@@ -13,6 +13,7 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
+    "@pythnetwork/pyth-sui-js": "^2.1.0",
     "@types/node": "^22.9.0",
     "gts": "^6.0.2",
     "ts-node": "^10.9.2",

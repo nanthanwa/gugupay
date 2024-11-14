@@ -10,6 +10,13 @@ module gugupay::payment_service {
     use sui::event;
     use sui::clock::{Self, Clock};
     use sui::table::{Self, Table};
+    use pyth::price_info;
+    use pyth::price_identifier;
+    use pyth::price;
+    use pyth::pyth;
+    use pyth::price_info::PriceInfoObject;
+    use sui::math::{Self, pow};
+    use pyth::i64;
 
     // ======== Errors ========
     const ENotMerchantOwner: u64 = 0;
@@ -18,6 +25,8 @@ module gugupay::payment_service {
     const EInsufficientPayment: u64 = 3;
     const EInvalidAmount: u64 = 4;
     const EInvalidExpiryTime: u64 = 5;
+    const EInvalidID: u64 = 6;
+    const EInvalidPriceFeed: u64 = 7;
 
     // ======== Events ========
     public struct MerchantCreated has copy, drop {
@@ -29,7 +38,11 @@ module gugupay::payment_service {
     public struct InvoiceCreated has copy, drop {
         invoice_id: ID,
         merchant_id: ID,
+        description: String,
         amount_usd: u64,
+        amount_sui: u64,
+        exchange_rate: u64,
+        rate_timestamp: u64,
         expires_at: u64
     }
 
@@ -77,9 +90,18 @@ module gugupay::payment_service {
         merchant_id: ID,
         description: String,
         amount_usd: u64,
+        amount_sui: u64,
+        exchange_rate: u64,
+        rate_timestamp: u64,
         expires_at: u64,
         is_paid: bool
     }
+
+     // ======== Constants ========
+    // SUI/USD price feed ID from Pyth Network
+    const PYTH_PRICE_FEED_ID: vector<u8> = x"50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266";
+    const PRICE_FEED_MAX_AGE: u64 = 60; // Price must be no older than 60 seconds
+    const INVOICE_VALIDITY_PERIOD: u64 = 1800000; // 30 minutes in milliseconds
 
     // ======== Init Function ========
     fun init(ctx: &mut TxContext) {
@@ -139,14 +161,44 @@ module gugupay::payment_service {
         merchant_id: ID,
         description: vector<u8>,
         amount_usd: u64,
-        expires_at: u64,
         clock: &Clock,
+        price_info_object: &PriceInfoObject,
         ctx: &mut TxContext
     ) {
         let merchant = table::borrow(&store.merchants, merchant_id);
         assert!(tx_context::sender(ctx) == merchant.owner, ENotMerchantOwner);
         assert!(amount_usd > 0, EInvalidAmount);
-        assert!(expires_at > clock::timestamp_ms(clock), EInvoiceExpired);
+        
+        // Get SUI/USD price from Pyth Oracle
+        let price_struct = pyth::get_price_no_older_than(
+            price_info_object, 
+            clock, 
+            PRICE_FEED_MAX_AGE
+        );
+        
+        // Verify this is the correct SUI/USD price feed
+        let price_info = price_info::get_price_info_from_price_info_object(price_info_object);
+        let price_id = price_identifier::get_bytes(&price_info::get_price_identifier(&price_info));
+        assert!(price_id == PYTH_PRICE_FEED_ID, EInvalidPriceFeed);
+        
+        // Get price and convert considering decimals
+        let price_i64 = price::get_price(&price_struct);
+        let expo_i64 = price::get_expo(&price_struct);
+        
+        // Convert price to u64 (assuming price is positive)
+        let price_u64 = i64::get_magnitude_if_positive(&price_i64);
+        let expo = i64::get_magnitude_if_negative(&expo_i64); // Expo is typically negative
+        
+        // Calculate required SUI amount
+        let decimals = 9; // SUI decimals
+        let price_decimals = (expo as u8);
+        let price_multiplier = math::pow(10, price_decimals);
+        
+        let exchange_rate = price_u64;  // Store the raw exchange rate
+        let amount_sui = (amount_usd * (math::pow(10, decimals) as u64) * price_multiplier) / price_u64;
+
+        let current_time = clock::timestamp_ms(clock);
+        let expires_at = current_time + INVOICE_VALIDITY_PERIOD;
 
         let invoice_id = object::new(ctx);
         let id = object::uid_to_inner(&invoice_id);
@@ -157,6 +209,9 @@ module gugupay::payment_service {
             merchant_id,
             description: string::utf8(description),
             amount_usd,
+            amount_sui,
+            exchange_rate,         // Store the exchange rate
+            rate_timestamp: current_time,  // Store when we got the rate
             expires_at,
             is_paid: false
         };
@@ -167,7 +222,11 @@ module gugupay::payment_service {
         event::emit(InvoiceCreated {
             invoice_id: id,
             merchant_id,
+            description: string::utf8(description),
             amount_usd,
+            amount_sui,
+            exchange_rate,
+            rate_timestamp: current_time,
             expires_at
         });
     }
@@ -182,20 +241,15 @@ module gugupay::payment_service {
         let invoice = table::borrow_mut(&mut store.invoices, invoice_id);
         let merchant = table::borrow_mut(&mut store.merchants, invoice.merchant_id);
         
-        // In real implementation, we would get this from Pyth Oracle
-        let sui_usd_rate = 40; // Assuming 1 SUI = $40 USD
-        
         assert!(!invoice.is_paid, EInvoiceAlreadyPaid);
         assert!(clock::timestamp_ms(clock) <= invoice.expires_at, EInvoiceExpired);
         
         let payment_value = coin::value(&payment);
-        let required_sui = (invoice.amount_usd * 1000000000) / sui_usd_rate; // Convert to SUI with 9 decimals
-        
-        assert!(payment_value >= required_sui, EInsufficientPayment);
+        assert!(payment_value >= invoice.amount_sui, EInsufficientPayment);
 
         // Split excess payment if any
-        if (payment_value > required_sui) {
-            let excess = coin::split(&mut payment, payment_value - required_sui, ctx);
+        if (payment_value > invoice.amount_sui) {
+            let excess = coin::split(&mut payment, payment_value - invoice.amount_sui, ctx);
             transfer::public_transfer(excess, tx_context::sender(ctx));
         };
 
@@ -210,7 +264,7 @@ module gugupay::payment_service {
             invoice_id,
             merchant_id: invoice.merchant_id,
             paid_by: tx_context::sender(ctx),
-            amount_sui: required_sui
+            amount_sui: invoice.amount_sui
         });
     }
 

@@ -2,22 +2,41 @@
 
 [move]
 version = 3
-manifest_digest = "BB5B8C194120DDC93417C0E74C4074F84E9080752F13A12E81ACFAD68D2A17AC"
-deps_digest = "F8BBB0CCB2491CA29A3DF03D6F92277A4F3574266507ACD77214D37ECA3F3082"
+manifest_digest = "4A5B3D371196087BD59579E52F5F368E3540BB5DC3559B8941D4DAAA0A2FA6D0"
+deps_digest = "060AD7E57DFB13104F21BE5F5C3759D03F0553FC3229247D9A7A6B45F50D03A3"
 dependencies = [
+  { id = "Pyth", name = "Pyth" },
   { id = "Sui", name = "Sui" },
+  { id = "Wormhole", name = "Wormhole" },
 ]
 
 [[move.package]]
 id = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "framework/testnet", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "041c5f2bae2fe52079e44b70514333532d69f4e6", subdir = "crates/sui-framework/packages/move-stdlib" }
+
+[[move.package]]
+id = "Pyth"
+source = { git = "https://github.com/pyth-network/pyth-crosschain.git", rev = "sui-contract-testnet", subdir = "target_chains/sui/contracts" }
+
+dependencies = [
+  { id = "Sui", name = "Sui" },
+  { id = "Wormhole", name = "Wormhole" },
+]
 
 [[move.package]]
 id = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "framework/testnet", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "041c5f2bae2fe52079e44b70514333532d69f4e6", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { id = "MoveStdlib", name = "MoveStdlib" },
+]
+
+[[move.package]]
+id = "Wormhole"
+source = { git = "https://github.com/wormhole-foundation/wormhole.git", rev = "sui-upgrade-testnet", subdir = "sui/wormhole" }
+
+dependencies = [
+  { id = "Sui", name = "Sui" },
 ]
 
 [move.toolchain-version]
@@ -35,6 +54,12 @@ published-version = "1"
 
 [env.testnet]
 chain-id = "4c78adac"
-original-published-id = "0x528b84ea98af7e92c3cd27db185f49855c47c7215c33e75b1a97e3887ed36b3c"
-latest-published-id = "0x528b84ea98af7e92c3cd27db185f49855c47c7215c33e75b1a97e3887ed36b3c"
+original-published-id = "0x0000000000000000000000000000000000000000000000000000000000000000"
+latest-published-id = "0x372b17c4b537086f51a58fd1ba06caec012bca10e957652ef3b320943a1c160a"
+published-version = "1"
+
+[env.testnet2]
+chain-id = "4c78adac"
+original-published-id = "0xc2e4d01c0cd7bbf92e8b34024652c3278b73e24f0d4a226fb37ba9b921b29dfb"
+latest-published-id = "0xc2e4d01c0cd7bbf92e8b34024652c3278b73e24f0d4a226fb37ba9b921b29dfb"
 published-version = "1"

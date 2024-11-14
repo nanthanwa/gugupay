@@ -45,12 +45,17 @@ Represents a payment request with:
 
 ```bash
 # Replace these with your deployed contract values
-PACKAGE_ID=0x528b84ea98af7e92c3cd27db185f49855c47c7215c33e75b1a97e3887ed36b3c
-SHARED_ID=0x6c687caf6368e765d624e522a837eb22eae12c614cdf782919b41b0aa883a5b5
-MERCHANT_ID=0x0a2fd63bf8d7514d1bbe5cb1910115aa5de3e45050ca257702e8ef60eed75055
-INVOICE_ID=0xf53af58adbe95c3106572945d8302409dafeb0bdb751afc8758358cd2ba40e16
+PACKAGE_ID=0xd5ed14767ae11ddabaf0502839e83bcf628e5a8b8bbc584ecf8de98d9ef3b686
+SHARED_ID=0x80976d983484dee65f26e4c5c0d8e1ee610f977c233f73b554db7d01d20b4a33
+MERCHANT_ID=0x134d1e8e4cfcd79e3996862ed77f4ee39c32cf9afbfb41417ca4dec9ed010ca9
+INVOICE_ID=0xa664eaa910490c3e054b50841a81e511e3d118f853e5f265cea7229751300fa4
 CLOCK_ID=0x6
-COIN_ID=0x9144b267acc9f06532c8677a2d3df1cf229edc62a36570fc8e981fea4715d02f
+PYTH_PACKAGE_ID=0xf7114cc10266d90c0c9e4b84455bddf29b40bd78fe56832c7ac98682c3daa95b
+PYTH_PRICE_FEED_ID=0xf47329f4344f3bf0f8e436e2f7b485466cff300f12a166563995d3888c296a94
+COIN_ID=0xbc4304f48baf53d21243c9d879211036cac0a8dd92fd2254932a7ba8117dc97a
+WORMHOLE_STATE_ID=0xebba4cc4d614f7a7cdbe883acc76d1cc767922bc96778e7b68be0d15fce27c02
+PYTH_STATE_ID=0x2d82612a354f0b7e52809fc2845642911c7190404620cec8688f68808f8800d8
+PRICE_INFO_OBJECT_ID=0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0
 ```
 
 ## CLI Commands
@@ -87,10 +92,52 @@ sui client call \
     "$MERCHANT_ID" \
     "Invoice for Product XYZ" \
     10 \
-    1734025535000 \
     "$CLOCK_ID" \
+    "0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0" \
   --gas-budget 10000000
 ```
+
+sui client call \
+  --package $PACKAGE_ID \
+  --module payment_service \
+  --function create_invoice \
+  --args \
+    "$CLOCK_ID" \
+    "0x1ebb295c789cc42b3b2a1606482cd1c7124076a0f5676718501fda8c7fd075a0" \
+  --gas-budget 10000000
+
+
+#### Create a PTB that:
+1. Updates Pyth price feed
+2. Uses the result to create an invoice
+
+```bash
+sui client ptb \
+--move-call pyth::pyth::update_price_feeds \
+"[price_update_data]" "[price_feed_ids]" \
+--assign price_info \
+--move-call payment_service::payment_service::create_invoice \
+"$SHARED_ID" "$MERCHANT_ID" "Invoice Description" 10 "$CLOCK_ID" price_info \
+--gas-budget 100000000
+
+
+# Add --preview flag to see the transaction sequence without executing
+sui client ptb \
+--move-call pyth::pyth::update_price_feeds \
+"$WORMHOLE_STATE_ID" "$PYTH_STATE_ID" \
+--assign price_info \
+--move-call "$PACKAGE_ID"::payment_service::create_invoice \
+"$SHARED_ID" "$MERCHANT_ID" "Invoice Description" 10 "$CLOCK_ID" price_info \
+--gas-budget 100000000
+
+
+sui client ptb \
+--move-call "$PYTH_PACKAGE_ID"::pyth::update_price_feeds \
+"$WORMHOLE_STATE_ID" "$PYTH_STATE_ID" \
+--assign price_info \
+--gas-budget 100000000
+```
+
 
 ### Pay an Invoice
 

@@ -28,7 +28,7 @@
 
   const createInvoice = async () => {
     const merchantId =
-      "0xebd379474995d9a706d5b0f30966d2de02e36beaba5240201a7f33d9c5a3a6fc";
+      "0x3dadb8abe022bc47692c84961579cbe0e7c7f1862ef0d863fd73cee8a51f836f";
     const txb = new Transaction();
     const priceUpdateData =
       await gugupayClient.connection.getPriceFeedsUpdateData([
@@ -44,7 +44,7 @@
     gugupayClient.createInvoice({
       txb,
       merchantId,
-      amount_usd: 100,
+      amount_usd: 1,
       description: "Test Description",
     });
     signAndExecuteTransactionBlock(txb)
@@ -55,7 +55,31 @@
         console.error("errpr", err);
       });
   };
+
+  const payInvoice = async () => {
+    const invoiceId = "0x682e1dc49d704f2a06401a8fa3bfa7efc5933d82e7574fe6e77250098fa0a8ad"
+    const invoice = await gugupayClient.getInvoice(invoiceId);
+    const amountSui = invoice.data?.content?.fields?.value.fields.amount_sui;
+    const invoiceId2 = invoice.data?.content.fields.value.fields.id;
+    const txb = new Transaction();
+    gugupayClient.payInvoice({
+      txb,
+      invoiceId,
+      amountSui,
+      invoiceId2,
+    });
+    // console.log('txb', txb);
+    signAndExecuteTransactionBlock(txb)
+      .then((result) => {
+        console.log("result", result);
+      })
+      .catch((err) => {
+        console.error("errpr", err);
+      });
+  }
 </script>
+
+
 
 {#if walletStatus.isConnected}
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
@@ -68,6 +92,12 @@
       >createInvoice</button
     >
   </div>
+  <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
+    <button class="btn btn-primary" onclick={payInvoice}
+      >payInvoice</button
+    >
+  </div>
+
 {:else}
   <div
     class="flex h-[70vh] w-full flex-col items-center justify-center gap-8 px-4 py-6 lg:px-6"

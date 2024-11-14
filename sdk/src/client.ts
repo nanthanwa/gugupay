@@ -14,6 +14,7 @@ import {
   SuiPythClient,
   SuiPriceServiceConnection,
 } from '@pythnetwork/pyth-sui-js';
+import {InvoiceObjectData} from './typedef';
 
 // TODO: Replace with actual type
 const merchantObjType = '0x3::staking_pool::StakedSui';
@@ -140,6 +141,69 @@ export class GugupayClient {
         txb.pure.u64(amount_usd),
         txb.object(this.CLOCK_ID),
         txb.object(this.PRICE_INFO_OBJECT_ID),
+      ],
+    });
+    return txb;
+  };
+
+  getInvoice = async (invoiceId: string) => {
+    return this.SuiClient.getObject({
+      id: invoiceId,
+      options: {
+        showContent: true,
+      },
+    }) as any;
+    // }) as Promise<SuiObjectResponse<InvoiceObjectData>>;
+  };
+
+  getMerchantByInvoiceId = async (invoiceId: string) => {
+    const invoice = await this.getInvoice(invoiceId);
+    if (invoice.data?.content?.dataType === 'package') {
+      throw new Error('Invoice not found');
+    }
+
+    const invoiceData = invoice.data as InvoiceObjectData;
+    console.log('invoiceData', invoiceData);
+
+    return invoiceData.content?.fields?.value.fields.merchant_id;
+  };
+
+  payInvoice = ({
+    txb,
+    invoiceId,
+    amountSui,
+    invoiceId2,
+  }: {
+    txb: Transaction;
+    invoiceId: string;
+    amountSui: number;
+    invoiceId2: string;
+  }) => {
+    // Get invoice details to determine payment amount
+    // const merchant_id = await this.getMerchantByInvoiceId(invoiceId);
+    // console.log('merchant_id', merchant_id);
+    // console.log('invoiceId', invoiceId);
+
+    console.log('invoiceId', invoiceId2);
+    console.log('amountSui', amountSui);
+
+    // Split coin to get exact payment amount
+    // console.log('txb.gas', txb.gas);
+    const [splitCoin] = txb.splitCoins(txb.gas, [txb.pure.u64(amountSui)]);
+
+    console.log('splitCoin', splitCoin);
+    console.log('this.SHARED_ID', this.SHARED_ID);
+    console.log('invoiceId2', invoiceId2);
+    txb.setGasBudget(10000000);
+    txb.moveCall({
+      package: this.PACKAGE_ID,
+      module: 'payment_service',
+      function: 'pay_invoice',
+      arguments: [
+        txb.object(this.SHARED_ID),
+        txb.object(invoiceId2),
+        txb.object(splitCoin),
+        txb.object(this.CLOCK_ID),
       ],
     });
     return txb;

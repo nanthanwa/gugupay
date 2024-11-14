@@ -7,6 +7,13 @@
 
   const sign = () => {
     const txb = new Transaction();
+    gugupayClient.createMerchantObject({
+      txb,
+      name: "Test Merchant",
+      imageURL: "https://example.com/image.png",
+      callbackURL: "https://example.com/callback",
+      description: "Test Description",
+    });
     signAndExecuteTransactionBlock(txb)
       .then((result) => {
         console.log("result", result);

@@ -27,8 +27,10 @@
   };
 
   const createInvoice = async () => {
-    const merchantId =
-      "0x750b10c3c0b210078d8d06ea7aa97d2237264160c36baaacdd734236dd55a329";
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
     const txb = new Transaction();
     const priceUpdateData =
       await gugupayClient.connection.getPriceFeedsUpdateData([
@@ -43,7 +45,7 @@
 
     gugupayClient.createInvoice({
       txb,
-      merchantId,
+      merchantId: merchantIds[merchantIds.length - 1],
       amount_usd: 1,
       description: "Test Description",
     });
@@ -57,16 +59,20 @@
   };
 
   const payInvoice = async () => {
-    const invoiceId = "0x1a8a65b39d466af91dc1165a99f75c6bd38d41f1e5fdc9ca2956aab042eeff2c"
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const invoiceDetails = await gugupayClient.getInvoiceDetails(walletAccount.value?.walletAccount.address, invoiceId);
+    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
+    const invoiceIds = await gugupayClient.getMerchantInvoices(walletAccount.value?.walletAccount.address, merchantIds[merchantIds.length - 1]);
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const invoiceDetails = await gugupayClient.getInvoiceDetails(walletAccount.value?.walletAccount.address, invoiceIds[invoiceIds.length - 1]);
 
     const txb = new Transaction();
     gugupayClient.payInvoice({
       txb,
-      invoiceId,
+      invoiceId: invoiceIds[invoiceIds.length - 1],
       amountSui: invoiceDetails.amountSui,
     });
     // console.log('txb', txb);
@@ -87,11 +93,14 @@
   }
 
   const getInvoicesByMerchant = async () => {
-    const merchantId = "0x750b10c3c0b210078d8d06ea7aa97d2237264160c36baaacdd734236dd55a329";
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const invoiceIds = await gugupayClient.getMerchantInvoices(walletAccount.value?.walletAccount.address, merchantId);
+    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const invoiceIds = await gugupayClient.getMerchantInvoices(walletAccount.value?.walletAccount.address, merchantIds[merchantIds.length - 1]);
     console.log('invoiceIds', invoiceIds);
   }
 </script>

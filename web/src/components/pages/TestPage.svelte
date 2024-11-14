@@ -3,7 +3,10 @@
   import { signAndExecuteTransactionBlock } from "@components/wallet/SuiModule.svelte";
   import { Transaction } from "@mysten/sui/transactions";
   import ConnectButton from "@components/wallet/ConnectButton.svelte";
-  import { walletStatus, walletAccount } from "@components/wallet/SuiModule.svelte";
+  import {
+    walletStatus,
+    walletAccount,
+  } from "@components/wallet/SuiModule.svelte";
 
   const createMerchant = () => {
     const txb = new Transaction();
@@ -24,12 +27,19 @@
   };
 
   const createInvoice = async () => {
-    
-    const merchantId = '0xebd379474995d9a706d5b0f30966d2de02e36beaba5240201a7f33d9c5a3a6fc';
+    const merchantId =
+      "0xebd379474995d9a706d5b0f30966d2de02e36beaba5240201a7f33d9c5a3a6fc";
     const txb = new Transaction();
-    const priceUpdateData = await gugupayClient.connection.getPriceFeedsUpdateData([gugupayClient.PYTH_PRICE_FEED_ID])
-    const priceInfoObjectIds = await gugupayClient.PYTH_CLIENT.updatePriceFeeds(txb, priceUpdateData, [gugupayClient.PYTH_PRICE_FEED_ID])
-    console.log("priceInfoObjectIds", priceInfoObjectIds)
+    const priceUpdateData =
+      await gugupayClient.connection.getPriceFeedsUpdateData([
+        gugupayClient.PYTH_PRICE_FEED_ID,
+      ]);
+    const priceInfoObjectIds = await gugupayClient.PYTH_CLIENT.updatePriceFeeds(
+      txb,
+      priceUpdateData,
+      [gugupayClient.PYTH_PRICE_FEED_ID],
+    );
+    console.log("priceInfoObjectIds", priceInfoObjectIds);
 
     gugupayClient.createInvoice({
       txb,
@@ -49,10 +59,14 @@
 
 {#if walletStatus.isConnected}
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
-    <button class="btn btn-primart" onclick={createMerchant}>createMerchant</button>
+    <button class="btn btn-primary" onclick={createMerchant}
+      >createMerchant</button
+    >
   </div>
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
-    <button class="btn btn-primart" onclick={createInvoice}>createInvoice</button>
+    <button class="btn btn-primary" onclick={createInvoice}
+      >createInvoice</button
+    >
   </div>
 {:else}
   <div

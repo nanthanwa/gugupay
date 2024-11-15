@@ -13,7 +13,7 @@
   import type { InvoiceObject, MerchantObject } from "@gugupay/sdk";
   import { Transaction } from "@mysten/sui/transactions";
   import { addToastMessage } from "@stores/toastStore";
-  import { suiToString } from "@utils/sui";
+  import { shortAddress, suiToString } from "@utils/sui";
 
   const urlParams = new URLSearchParams(window.location.search);
   const merchantId = urlParams.get("merchantId");
@@ -29,7 +29,7 @@
   let merchantModal: MerchantModal | undefined = $state();
   let invoiceModal: InvoiceModal | undefined = $state();
   let invoiceIds = $state<string[]>([]);
-  let invoices = $state<InvoiceObject[]>([]);
+  let invoices = $state<(InvoiceObject & { id: string })[]>([]);
 
   async function init() {
     try {
@@ -60,14 +60,19 @@
           merchantId,
         );
 
+        const newInvoices = [];
         for (let i = 0; i < invoiceIds.length; i++) {
           const invoiceId = invoiceIds[i];
           const invoice = await gugupayClient.getInvoiceDetails(
             walletAccount.value.walletAccount.address,
             invoiceId,
           );
-          invoices.push(invoice);
+          newInvoices.unshift({
+            ...invoice,
+            id: invoiceId,
+          });
         }
+        invoices = newInvoices;
       }
     } catch (error: any) {
       console.error(error);
@@ -95,6 +100,10 @@
     } catch (error: any) {
       addToastMessage("Withdraw failed: " + error.message, "error");
     }
+  }
+
+  function onInvoiceCreated() {
+    init();
   }
 </script>
 
@@ -141,10 +150,31 @@
           New Invoice</button
         >
       </div>
-      <div class="bg-base-100 flex flex-row gap-2 rounded-lg">
+      <div class="flex flex-col gap-4 rounded-lg">
         {#if invoices.length > 0}
           {#each invoices as invoice}
-            <div>TODO</div>{/each}
+            <a
+              href={`/pay?invoiceId=${invoice.id}`}
+              class="bg-base-100 flex w-full flex-row items-center justify-between rounded-lg p-4"
+            >
+              <div class="flex flex-row justify-start gap-4">
+                {#if invoice.isPaid}
+                  <div class="text-success text-lg">Success</div>
+                {:else if invoice.expiresAt < Date.now()}
+                  <div class="text-error text-lg">Expired</div>
+                {:else}
+                  <div class="text-lg">Pending</div>
+                {/if}
+                <div class="text-lg font-bold">{shortAddress(invoice.id)}</div>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                <div class="text-lg">{invoice.amountUsd} USD</div>
+                <div class="text-lg">
+                  {suiToString(invoice.amountSui)} SUI
+                </div>
+              </div>
+            </a>
+          {/each}
         {:else}
           <div class="mx-auto my-8 w-full text-center text-lg">
             Invoices not found
@@ -152,7 +182,11 @@
         {/if}
       </div>
     </div>
-    <InvoiceModal bind:this={invoiceModal} bind:merchant />
+    <InvoiceModal
+      bind:this={invoiceModal}
+      bind:merchant
+      onCreated={onInvoiceCreated}
+    />
     <MerchantModal bind:this={merchantModal} bind:merchant />
   {:else}
     <div class="mx-auto my-8 w-full text-center text-lg">

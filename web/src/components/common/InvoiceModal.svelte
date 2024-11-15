@@ -5,9 +5,9 @@
   import { Transaction } from "@mysten/sui/transactions";
   import { addToastMessage } from "@stores/toastStore";
 
-  type Props = { merchant: MerchantObject };
+  type Props = { merchant: MerchantObject; onCreated?: () => void };
 
-  const { merchant = $bindable() }: Props = $props();
+  const { merchant = $bindable(), onCreated }: Props = $props();
 
   let isModalOpen: boolean = $state(false);
 
@@ -51,6 +51,7 @@
         if (result) {
           addToastMessage("Invoice created success", "success");
           isModalOpen = false;
+          onCreated?.();
         }
       })
       .catch((error) => {
@@ -65,7 +66,7 @@
   <div class="modal-box rounded-none">
     <div class="flex flex-col gap-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold">New Merchant</h3>
+        <h3 class="text-lg font-semibold">New Invoice</h3>
         <button
           type="button"
           class="ml-auto inline-flex items-center p-1.5 text-sm"

@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "Gugupay SDK",
   "main": "src/index",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "lint": "gts lint",
     "clean": "gts clean",

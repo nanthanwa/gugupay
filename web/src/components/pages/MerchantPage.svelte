@@ -187,7 +187,9 @@
       bind:merchant
       onCreated={onInvoiceCreated}
     />
-    <MerchantModal bind:this={merchantModal} bind:merchant />
+    {#if merchant.name}
+      <MerchantModal bind:this={merchantModal} {merchant} />
+    {/if}
   {:else}
     <div class="mx-auto my-8 w-full text-center text-lg">
       Merchant not found

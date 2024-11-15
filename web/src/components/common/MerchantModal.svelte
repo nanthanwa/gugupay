@@ -9,7 +9,7 @@
     merchant?: MerchantObject;
   };
 
-  const { merchant = $bindable() }: Props = $props();
+  const { merchant }: Props = $props();
 
   let isModalOpen: boolean = $state(false);
 
@@ -34,11 +34,18 @@
     isModalOpen = false;
   }
 
-  function submit() {
+  async function submit() {
     const txb = new Transaction();
     let merchantTxb;
     if (merchant) {
-      // TODO: update merchant
+      merchantTxb = await gugupayClient.updateMerchant(
+        txb,
+        merchant.merchantId,
+        name,
+        description,
+        imageURL,
+        callbackURL,
+      );
     } else {
       merchantTxb = gugupayClient.createMerchantObject({
         txb,

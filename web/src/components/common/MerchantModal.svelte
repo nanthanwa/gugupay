@@ -7,9 +7,10 @@
 
   type Props = {
     merchant?: MerchantObject;
+    onCreated?: () => void;
   };
 
-  const { merchant }: Props = $props();
+  const { merchant, onCreated }: Props = $props();
 
   let isModalOpen: boolean = $state(false);
 
@@ -60,6 +61,7 @@
         if (result) {
           addToastMessage("Merchant created successfully", "success");
           isModalOpen = false;
+          onCreated?.();
         }
       })
       .catch((error) => {

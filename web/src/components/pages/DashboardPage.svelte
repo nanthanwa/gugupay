@@ -91,6 +91,6 @@
       </div>
     </div>
   </div>
-  <MerchantModal bind:this={merchantModal} />
+  <MerchantModal bind:this={merchantModal} onCreated={init} />
 </WalletConnectGuard>
 <Toast />

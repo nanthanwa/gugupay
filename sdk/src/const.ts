@@ -1,10 +1,10 @@
 export const TESTNET_RPC_URL = 'https://rpc-testnet.suiscan.xyz:443';
 
 export const TESTNET_PACKAGE_ID =
-  '0xc56e828d26fe5fa6deda57ececc74198ff1721a95165952fae19985d124649af';
+  '0x47970477effae8a47466b96a4fc835b1510e3eff7afe4cbe73503fb1aa2b2de0';
 
 export const TESTNET_SHARED_ID =
-  '0x6a4f0a566b5583955d3cf2e5aa6331253e258bd378570229ced7e7217df64101';
+  '0x1eb524052355dbb9ddd99381d86d0ed53aa842ba7059148cb24ab0c9cfdc6ee0';
 
 export const CLOCK_ID = '0x6';
 

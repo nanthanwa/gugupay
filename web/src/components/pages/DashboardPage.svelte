@@ -8,35 +8,40 @@
     walletStatus,
   } from "@components/wallet/SuiModule.svelte";
   import type { MerchantObject } from "@gugupay/sdk";
+  import { addToastMessage } from "@stores/toastStore";
   import { suiToString } from "@utils/sui";
 
   let merchantModal: MerchantModal | undefined = $state();
   const merchants = $state<(MerchantObject & { balance: number })[]>([]);
 
   async function init() {
-    if (!walletStatus.isConnected || !walletAccount.value) {
-      throw Error("wallet not connect");
-    }
+    try {
+      if (!walletStatus.isConnected || !walletAccount.value) {
+        throw Error("wallet not connect");
+      }
 
-    const merchantIds = await gugupayClient.getMerchantsByOwner(
-      walletAccount.value.walletAccount.address,
-    );
-
-    for (let i = 0; i < merchantIds.length; i++) {
-      const merchantId = merchantIds[i];
-      const merchantDetail = await gugupayClient.getMerchantDetails(
+      const merchantIds = await gugupayClient.getMerchantsByOwner(
         walletAccount.value.walletAccount.address,
-        merchantId,
-      );
-      const merchantBalance = await gugupayClient.getMerchantBalance(
-        walletAccount.value.walletAccount.address,
-        merchantId,
       );
 
-      merchants.push({
-        ...merchantDetail,
-        balance: merchantBalance,
-      });
+      for (let i = 0; i < merchantIds.length; i++) {
+        const merchantId = merchantIds[i];
+        const merchantDetail = await gugupayClient.getMerchantDetails(
+          walletAccount.value.walletAccount.address,
+          merchantId,
+        );
+        const merchantBalance = await gugupayClient.getMerchantBalance(
+          walletAccount.value.walletAccount.address,
+          merchantId,
+        );
+
+        merchants.push({
+          ...merchantDetail,
+          balance: merchantBalance,
+        });
+      }
+    } catch (error: any) {
+      addToastMessage("Get merchants error" + error.message, "error");
     }
   }
 </script>
@@ -54,7 +59,7 @@
       >
     </div>
     <div class="w-full">
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-4">
         {#if merchants.length > 0}
           {#each merchants as merchant}
             <a

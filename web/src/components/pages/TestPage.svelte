@@ -94,6 +94,31 @@
     console.log("merchantIds", merchantIds);
   };
 
+  const updateMerchant = async () => {
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value?.walletAccount.address,
+    );
+    const txb = new Transaction();
+    gugupayClient.updateMerchant(
+      txb,
+      merchantIds[merchantIds.length - 1],
+      "Test Merchant",
+      "Test Description",
+      "https://example.com/image.png",
+      "https://example.com/callback",
+    );
+    signAndExecuteTransactionBlock(txb)
+      .then((result) => {
+        console.log("result", result);
+      })
+      .catch((err) => {
+        console.error("errpr", err);
+      });
+  }
+
   const getInvoicesByMerchant = async () => {
     if (!walletAccount.value?.walletAccount.address) {
       return;
@@ -179,6 +204,11 @@
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
     <button class="btn btn-primary" onclick={withdrawMerchantBalance}
       >withdrawMerchantBalance</button
+    >
+  </div>
+  <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
+    <button class="btn btn-primary" onclick={updateMerchant}
+      >updateMerchant</button
     >
   </div>
 {:else}

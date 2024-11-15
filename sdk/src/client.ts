@@ -366,6 +366,28 @@ export class GugupayClient {
     return txb;
   };
 
+  updateMerchant = async (
+    txb: Transaction,
+    merchantId: string,
+    name: string,
+    description: string,
+    logo_url: string,
+    callback_url: string,
+  ) => {
+    txb.moveCall({
+      target: `${this.PACKAGE_ID}::payment_service::update_merchant`,
+      arguments: [
+        txb.object(this.SHARED_ID),
+        txb.object(merchantId),
+        txb.pure.string(name),
+        txb.pure.string(description),
+        txb.pure.string(logo_url),
+        txb.pure.string(callback_url),
+      ],
+    });
+    return txb;
+  };
+
   getMerchantsByOwner = async (ownerAddress: string) => {
     const tx = new Transaction2();
 

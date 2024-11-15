@@ -183,7 +183,13 @@
         </dd>
       </dl>
     </div>
-    {#if walletStatus.isConnected}
+    {#if invoice.isPaid}
+      <div
+        class="btn btn-success border-base-300 w-full max-w-screen-md rounded-full"
+      >
+        Transaction Success
+      </div>
+    {:else if walletStatus.isConnected}
       <div class="flex w-full flex-col items-center justify-center">
         {#if isExpired}
           <button
@@ -192,12 +198,6 @@
           >
             Invoice is expired
           </button>
-        {:else if invoice.isPaid}
-          <div
-            class="btn btn-success border-base-300 w-full max-w-screen-md rounded-full"
-          >
-            Transaction Success
-          </div>
         {:else}
           <button
             class="btn btn-primary border-base-300 w-full max-w-screen-md rounded-full"

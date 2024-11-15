@@ -1,6 +1,6 @@
 {
   "name": "@gugupay/sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Gugupay SDK",
   "main": "src/index",
   "publishConfig": {

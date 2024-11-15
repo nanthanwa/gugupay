@@ -20,7 +20,7 @@ import {
   SuiPythClient,
   SuiPriceServiceConnection,
 } from '@pythnetwork/pyth-sui-js';
-import {InvoiceObjectData} from './typedef';
+import {InvoiceObjectData, MerchantObject} from './typedef';
 
 export class GugupayClient {
   SuiClient: SuiClient;
@@ -220,13 +220,7 @@ export class GugupayClient {
   getMerchantDetails = async (
     ownerAddress: string,
     merchantId: string,
-  ): Promise<{
-    id: string;
-    name: string;
-    description: string;
-    logo_url: string;
-    callback_url: string;
-  }> => {
+  ): Promise<MerchantObject> => {
     const tx = new Transaction2();
 
     tx.moveCall({
@@ -241,7 +235,7 @@ export class GugupayClient {
     });
 
     const merchantDetails = {
-      id: '',
+      merchantId: '',
       name: '',
       description: '',
       logo_url: '',

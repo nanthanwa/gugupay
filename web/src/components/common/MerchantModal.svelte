@@ -1,32 +1,32 @@
 <script lang="ts">
   import { gugupayClient } from "@client/client";
   import { signAndExecuteTransactionBlock } from "@components/wallet/SuiModule.svelte";
+  import type { MerchantObject } from "@gugupay/sdk";
   import { Transaction } from "@mysten/sui/transactions";
   import { addToastMessage } from "@stores/toastStore";
-  import type { MerchantObjectData } from "@gugupay/sdk";
 
-  type Props = {};
+  type Props = {
+    merchant?: MerchantObject;
+  };
 
-  const {}: Props = $props();
+  const { merchant = $bindable() }: Props = $props();
 
   let isModalOpen: boolean = $state(false);
-  let merchant: MerchantObjectData | undefined = $state(undefined);
 
   // elements
   let image: HTMLImageElement;
 
   // form data
-  let name: string = $state("");
+  let name: string = $state(merchant?.name || "");
   let nameError: string = $state("");
-  let imageURL: string = $state("");
+  let imageURL: string = $state(merchant?.logo_url || "");
   let imageError: string = $state("");
-  let callbackURL: string = $state("");
+  let callbackURL: string = $state(merchant?.callback_url || "");
   let callbackURLError: string = $state("");
-  let description: string = $state("");
+  let description: string = $state(merchant?.description || "");
   let descriptionError: string = $state("");
 
-  export function open(newMerchant?: MerchantObjectData) {
-    merchant = newMerchant;
+  export function open() {
     isModalOpen = true;
   }
 
@@ -46,6 +46,7 @@
     signAndExecuteTransactionBlock(merchantTxb)
       .then((result) => {
         if (result) {
+          addToastMessage("Merchant created successfully", "success");
           isModalOpen = false;
         }
       })

@@ -7,6 +7,7 @@
     walletStatus,
     walletAccount,
   } from "@components/wallet/SuiModule.svelte";
+  import Toast from "@components/common/Toast.svelte";
 
   const createMerchant = () => {
     const txb = new Transaction();
@@ -30,7 +31,9 @@
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value?.walletAccount.address,
+    );
     const txb = new Transaction();
     const priceUpdateData =
       await gugupayClient.connection.getPriceFeedsUpdateData([
@@ -62,12 +65,20 @@
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
-    const invoiceIds = await gugupayClient.getMerchantInvoices(walletAccount.value?.walletAccount.address, merchantIds[merchantIds.length - 1]);
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value?.walletAccount.address,
+    );
+    const invoiceIds = await gugupayClient.getMerchantInvoices(
+      walletAccount.value?.walletAccount.address,
+      merchantIds[merchantIds.length - 1],
+    );
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const invoiceDetails = await gugupayClient.getInvoiceDetails(walletAccount.value?.walletAccount.address, invoiceIds[invoiceIds.length - 1]);
+    const invoiceDetails = await gugupayClient.getInvoiceDetails(
+      walletAccount.value?.walletAccount.address,
+      invoiceIds[invoiceIds.length - 1],
+    );
 
     const txb = new Transaction();
     gugupayClient.payInvoice({
@@ -83,20 +94,24 @@
       .catch((err) => {
         console.error("errpr", err);
       });
-  }
+  };
   const getMerchantsByOwner = async () => {
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
-    console.log('merchantIds', merchantIds);
-  }
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value?.walletAccount.address,
+    );
+    console.log("merchantIds", merchantIds);
+  };
 
   const getInvoicesByMerchant = async () => {
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value?.walletAccount.address,
+    );
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
@@ -130,8 +145,6 @@
   }
 </script>
 
-
-
 {#if walletStatus.isConnected}
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
     <button class="btn btn-primary" onclick={createMerchant}
@@ -144,9 +157,7 @@
     >
   </div>
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
-    <button class="btn btn-primary" onclick={payInvoice}
-      >payInvoice</button
-    >
+    <button class="btn btn-primary" onclick={payInvoice}>payInvoice</button>
   </div>
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
     <button class="btn btn-primary" onclick={getMerchantsByOwner}
@@ -178,3 +189,5 @@
     ></ConnectButton>
   </div>
 {/if}
+
+<Toast />

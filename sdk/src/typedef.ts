@@ -1,19 +1,5 @@
 import {SuiObjectData, SuiValidatorSummary} from '@mysten/sui/dist/cjs/client';
 
-export interface MerchantObjectData extends SuiObjectData {
-  content: {
-    dataType: 'moveObject';
-    fields: {
-      id: {
-        id: string;
-      };
-    }; // custom fields for staked sui object
-    hasPublicTransfer: boolean;
-    type: string;
-  };
-  validator?: SuiValidatorSummary; // custom type
-}
-
 export interface InvoiceObjectData extends SuiObjectData {
   content: {
     dataType: 'moveObject';
@@ -37,4 +23,12 @@ export interface InvoiceObjectData extends SuiObjectData {
     type: string;
   };
   validator?: SuiValidatorSummary; // custom type
+}
+
+export interface MerchantObject {
+  merchantId: string;
+  name: string;
+  description: string;
+  logo_url: string;
+  callback_url: string;
 }

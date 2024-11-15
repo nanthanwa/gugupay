@@ -3,6 +3,7 @@
   import ConnectButton from "@components/wallet/ConnectButton.svelte";
   import { walletStatus } from "@components/wallet/SuiModule.svelte";
   import { suiToString } from "@utils/sui";
+    import Toast from "@components/common/Toast.svelte";
 
   const urlParams = new URLSearchParams(window.location.search);
   const invoiceId = urlParams.get("invoiceId");
@@ -123,3 +124,5 @@
     </div>
   {/if}
 </div>
+
+<Toast />

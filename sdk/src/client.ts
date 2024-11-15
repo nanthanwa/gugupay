@@ -178,8 +178,9 @@ export class GugupayClient {
       resultCall.results[0] &&
       resultCall.results[0].returnValues
     ) {
-      let merchantIdBuffer = resultCall.results[0].returnValues[0][0];
-      const returnValueBuffer = Buffer.from(merchantIdBuffer);
+      const returnValueBuffer = Buffer.from(
+        resultCall.results[0].returnValues[0][0],
+      );
       const merchantId = returnValueBuffer.slice(0, 32).toString('hex');
       const descriptionBuffer = resultCall.results[0].returnValues[1][0];
       const returnValueBuffer2 = Buffer.from(descriptionBuffer);
@@ -261,10 +262,10 @@ export class GugupayClient {
         resultCall.results[0].returnValues[2][0],
       ).toString();
       const logo_url = Buffer.from(
-        resultCall.results[0].returnValues[2][0],
+        resultCall.results[0].returnValues[3][0],
       ).toString();
       const callback_url = Buffer.from(
-        resultCall.results[0].returnValues[2][0],
+        resultCall.results[0].returnValues[4][0],
       ).toString();
       Object.assign(merchantDetails, {
         merchantId: `0x${merchantId}`,

@@ -32,3 +32,14 @@ export interface MerchantObject {
   logo_url: string;
   callback_url: string;
 }
+
+export interface InvoiceObject {
+  merchantId: string;
+  description: string;
+  amountUsd: number;
+  amountSui: number;
+  exchangeRate: number;
+  rateTimestamp: number;
+  expiresAt: number;
+  isPaid: boolean;
+}

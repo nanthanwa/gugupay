@@ -11,7 +11,7 @@
   import { suiToString } from "@utils/sui";
 
   let merchantModal: MerchantModal | undefined = $state();
-  const merchants = $state<MerchantObject[]>([]);
+  const merchants = $state<(MerchantObject & { balance: number })[]>([]);
 
   async function init() {
     if (!walletStatus.isConnected || !walletAccount.value) {
@@ -28,7 +28,15 @@
         walletAccount.value.walletAccount.address,
         merchantId,
       );
-      merchants.push(merchantDetail);
+      const merchantBalance = await gugupayClient.getMerchantBalance(
+        walletAccount.value.walletAccount.address,
+        merchantId,
+      );
+
+      merchants.push({
+        ...merchantDetail,
+        balance: merchantBalance,
+      });
     }
   }
 </script>
@@ -66,7 +74,7 @@
               <div
                 class="ml-auto flex flex-row items-center justify-end gap-2 text-xl lg:ml-0"
               >
-                {suiToString(15500000000)} SUI
+                {suiToString(merchant.balance)} SUI
               </div>
             </a>
           {/each}

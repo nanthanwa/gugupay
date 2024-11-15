@@ -5,26 +5,30 @@
   import { Transaction } from "@mysten/sui/transactions";
   import { addToastMessage } from "@stores/toastStore";
 
-  type Props = {
-    merchant?: MerchantObject;
-  };
+  type Props = { merchant: MerchantObject };
 
   const { merchant = $bindable() }: Props = $props();
 
   let isModalOpen: boolean = $state(false);
 
-  // elements
-  let image: HTMLImageElement;
-
   // form data
-  let name: string = $state(merchant?.name || "");
-  let nameError: string = $state("");
-  let imageURL: string = $state(merchant?.logo_url || "");
-  let imageError: string = $state("");
-  let callbackURL: string = $state(merchant?.callback_url || "");
-  let callbackURLError: string = $state("");
-  let description: string = $state(merchant?.description || "");
-  let descriptionError: string = $state("");
+  let amount = $state("0");
+  let amountError = $state("");
+  let amountNumber = $state(0);
+  let description = $state("");
+  let descriptionError = $state("");
+
+  $effect(() => {
+    amountNumber = parseFloat(amount);
+  });
+
+  $effect(() => {
+    if (isNaN(amountNumber) || amountNumber < 0) {
+      amountError = "Amount is invalid";
+    } else {
+      amountError = "";
+    }
+  });
 
   export function open() {
     isModalOpen = true;
@@ -34,41 +38,26 @@
     isModalOpen = false;
   }
 
-  function submit() {
+  async function submit() {
     const txb = new Transaction();
-    let merchantTxb;
-    if (merchant) {
-      // TODO: update merchant
-    } else {
-      merchantTxb = gugupayClient.createMerchantObject({
-        txb,
-        name,
-        imageURL,
-        callbackURL,
-        description,
-      });
-    }
-    signAndExecuteTransactionBlock(merchantTxb)
+    const createInvoiceTxb = await gugupayClient.createInvoice({
+      txb,
+      merchantId: merchant?.merchantId,
+      amount_usd: amountNumber,
+      description,
+    });
+    signAndExecuteTransactionBlock(createInvoiceTxb)
       .then((result) => {
         if (result) {
-          addToastMessage("Merchant created successfully", "success");
+          addToastMessage("Invoice created success", "success");
           isModalOpen = false;
         }
       })
       .catch((error) => {
         console.error(error);
-        addToastMessage("Failed to create merchant", "error");
+        addToastMessage("Failed to create invoice", "error");
       });
   }
-
-  $effect(() => {
-    imageError = "";
-    if (imageURL) {
-      image.src = imageURL;
-    } else {
-      image.src = "/apple-touch-icon.png";
-    }
-  });
 </script>
 
 <input type="checkbox" class="modal-toggle" bind:checked={isModalOpen} />
@@ -76,9 +65,7 @@
   <div class="modal-box rounded-none">
     <div class="flex flex-col gap-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold">
-          {merchant ? "Edit" : "New"} Merchant
-        </h3>
+        <h3 class="text-lg font-semibold">New Merchant</h3>
         <button
           type="button"
           class="ml-auto inline-flex items-center p-1.5 text-sm"
@@ -100,50 +87,16 @@
         </button>
       </div>
       <div class="flex flex-col gap-2">
-        <img
-          bind:this={image}
-          class="mx-auto h-24 w-24 rounded-full object-cover"
-          src="/apple-touch-icon.png"
-          alt="Merchant Test"
-          onerror={() => {
-            image.src = "/apple-touch-icon.png";
-            imageError = "Invalid image URL";
-          }}
-        />
         <label class="form-control w-full">
           <div class="label">
-            <span class="label-text">Name *</span>
-            <span class="label-text-alt text-error">{nameError}</span>
+            <span class="label-text">Amount (USD) *</span>
+            <span class="label-text-alt text-error">{amountError}</span>
           </div>
           <input
-            type="text"
-            placeholder="Enter merchant name"
+            type="number"
+            placeholder="Enter amount"
             class="input input-bordered w-full"
-            bind:value={name}
-          />
-        </label>
-        <label class="form-control w-full">
-          <div class="label">
-            <span class="label-text">Image URL</span>
-            <span class="label-text-alt text-error">{imageError}</span>
-          </div>
-          <input
-            type="text"
-            placeholder="Enter image URL"
-            class="input input-bordered w-full"
-            bind:value={imageURL}
-          />
-        </label>
-        <label class="form-control w-full">
-          <div class="label">
-            <span class="label-text">Callback URL</span>
-            <span class="label-text-alt text-error">{callbackURLError}</span>
-          </div>
-          <input
-            type="text"
-            placeholder="Enter callback URL"
-            class="input input-bordered w-full"
-            bind:value={callbackURL}
+            bind:value={amount}
           />
         </label>
         <label class="form-control w-full">
@@ -163,9 +116,7 @@
           <button class="btn btn-ghost" onclick={unsaveClose}>Cancel</button>
         </form>
         <form method="dialog">
-          <button class="btn btn-primary" onclick={submit}
-            >{merchant ? "Save" : "Create"}</button
-          >
+          <button class="btn btn-primary" onclick={submit}>Create</button>
         </form>
       </div>
     </div>

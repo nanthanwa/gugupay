@@ -3,7 +3,7 @@
   import ConnectButton from "@components/wallet/ConnectButton.svelte";
   import { walletStatus } from "@components/wallet/SuiModule.svelte";
   import { suiToString } from "@utils/sui";
-    import Toast from "@components/common/Toast.svelte";
+  import Toast from "@components/common/Toast.svelte";
 
   const urlParams = new URLSearchParams(window.location.search);
   const invoiceId = urlParams.get("invoiceId");
@@ -62,7 +62,7 @@
     {#if isExpired}
       <div class="text-error">Invoice is expired</div>
     {:else}
-      <div>Expire in</div>
+      <div>Expires in</div>
       <div>
         <span class="countdown font-mono text-lg">
           <span style="--value:{countdownMin};"></span>

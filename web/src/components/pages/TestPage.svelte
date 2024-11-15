@@ -35,18 +35,7 @@
       walletAccount.value?.walletAccount.address,
     );
     const txb = new Transaction();
-    const priceUpdateData =
-      await gugupayClient.connection.getPriceFeedsUpdateData([
-        gugupayClient.PYTH_PRICE_FEED_ID,
-      ]);
-    const priceInfoObjectIds = await gugupayClient.PYTH_CLIENT.updatePriceFeeds(
-      txb,
-      priceUpdateData,
-      [gugupayClient.PYTH_PRICE_FEED_ID],
-    );
-    console.log("priceInfoObjectIds", priceInfoObjectIds);
-
-    gugupayClient.createInvoice({
+    await gugupayClient.createInvoice({
       txb,
       merchantId: merchantIds[merchantIds.length - 1],
       amount_usd: 1,
@@ -115,26 +104,39 @@
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const invoiceIds = await gugupayClient.getMerchantInvoices(walletAccount.value?.walletAccount.address, merchantIds[merchantIds.length - 1]);
-    console.log('invoiceIds', invoiceIds);
-  }
+    const invoiceIds = await gugupayClient.getMerchantInvoices(
+      walletAccount.value?.walletAccount.address,
+      merchantIds[merchantIds.length - 1],
+    );
+    console.log("invoiceIds", invoiceIds);
+  };
 
   const getMerchantBalance = async () => {
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
-    const balance = await gugupayClient.getMerchantBalance(walletAccount.value?.walletAccount.address, merchantIds[merchantIds.length - 1]);
-    console.log('balance', balance);
-  }
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value?.walletAccount.address,
+    );
+    const balance = await gugupayClient.getMerchantBalance(
+      walletAccount.value?.walletAccount.address,
+      merchantIds[merchantIds.length - 1],
+    );
+    console.log("balance", balance);
+  };
 
   const withdrawMerchantBalance = async () => {
     if (!walletAccount.value?.walletAccount.address) {
       return;
     }
-    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
+    const merchantIds = await gugupayClient.getMerchantsByOwner(
+      walletAccount.value?.walletAccount.address,
+    );
     const txb = new Transaction();
-    gugupayClient.withdrawMerchantBalance(txb, merchantIds[merchantIds.length - 1]);
+    gugupayClient.withdrawMerchantBalance(
+      txb,
+      merchantIds[merchantIds.length - 1],
+    );
     signAndExecuteTransactionBlock(txb)
       .then((result) => {
         console.log("result", result);
@@ -142,7 +144,7 @@
       .catch((err) => {
         console.error("errpr", err);
       });
-  }
+  };
 </script>
 
 {#if walletStatus.isConnected}

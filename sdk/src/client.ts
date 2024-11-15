@@ -20,7 +20,7 @@ import {
   SuiPythClient,
   SuiPriceServiceConnection,
 } from '@pythnetwork/pyth-sui-js';
-import {InvoiceObjectData, MerchantObject} from './typedef';
+import {InvoiceObject, InvoiceObjectData, MerchantObject} from './typedef';
 
 export class GugupayClient {
   SuiClient: SuiClient;
@@ -110,7 +110,7 @@ export class GugupayClient {
     return txb;
   };
 
-  createInvoice = ({
+  createInvoice = async ({
     txb,
     merchantId,
     description,
@@ -121,6 +121,15 @@ export class GugupayClient {
     description: string;
     amount_usd: number;
   }) => {
+    const priceUpdateData = await this.connection.getPriceFeedsUpdateData([
+      this.PYTH_PRICE_FEED_ID,
+    ]);
+    const priceInfoObjectIds = await this.PYTH_CLIENT.updatePriceFeeds(
+      txb,
+      priceUpdateData,
+      [this.PYTH_PRICE_FEED_ID],
+    );
+
     txb.moveCall({
       package: this.PACKAGE_ID,
       module: 'payment_service',
@@ -140,16 +149,7 @@ export class GugupayClient {
   getInvoiceDetails = async (
     ownerAddress: string,
     invoiceId: string,
-  ): Promise<{
-    merchantId: string;
-    description: string;
-    amountUsd: number;
-    amountSui: number;
-    exchangeRate: number;
-    rateTimestamp: number;
-    expiresAt: number;
-    isPaid: boolean;
-  }> => {
+  ): Promise<InvoiceObject> => {
     const tx = new Transaction2();
 
     tx.moveCall({

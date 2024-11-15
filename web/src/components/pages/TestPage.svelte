@@ -103,6 +103,15 @@
     const invoiceIds = await gugupayClient.getMerchantInvoices(walletAccount.value?.walletAccount.address, merchantIds[merchantIds.length - 1]);
     console.log('invoiceIds', invoiceIds);
   }
+
+  const getMerchantBalance = async () => {
+    if (!walletAccount.value?.walletAccount.address) {
+      return;
+    }
+    const merchantIds = await gugupayClient.getMerchantsByOwner(walletAccount.value?.walletAccount.address);
+    const balance = await gugupayClient.getMerchantBalance(walletAccount.value?.walletAccount.address, merchantIds[merchantIds.length - 1]);
+    console.log('balance', balance);
+  }
 </script>
 
 
@@ -131,6 +140,11 @@
   <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
     <button class="btn btn-primary" onclick={getInvoicesByMerchant}
       >getInvoicesByMerchant</button
+    >
+  </div>
+  <div class="flex w-full flex-col gap-4 px-4 py-6 lg:px-6">
+    <button class="btn btn-primary" onclick={getMerchantBalance}
+      >getMerchantBalance</button
     >
   </div>
 {:else}

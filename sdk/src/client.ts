@@ -278,6 +278,33 @@ export class GugupayClient {
     return merchantDetails;
   };
 
+  getMerchantBalance = async (ownerAddress: string, merchantId: string) => {
+    const tx = new Transaction2();
+
+    tx.moveCall({
+      target: `${this.PACKAGE_ID}::payment_service::get_merchant_balance`,
+      arguments: [tx.object(this.SHARED_ID), tx.object(merchantId)],
+    });
+
+    // Execute the transaction
+    const resultCall = await this.SuiClient.devInspectTransactionBlock({
+      sender: ownerAddress,
+      transactionBlock: tx,
+    });
+
+    if (
+      resultCall.results &&
+      resultCall.results[0] &&
+      resultCall.results[0].returnValues
+    ) {
+      const balance = resultCall.results[0].returnValues[0][0];
+      const returnValueBuffer = Buffer.from(balance);
+      const balanceValue = returnValueBuffer.readBigUInt64LE(0);
+      return Number(balanceValue);
+    }
+    return 0;
+  };
+
   getInvoice = async (invoiceId: string) => {
     return this.SuiClient.getObject({
       id: invoiceId,

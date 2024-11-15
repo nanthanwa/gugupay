@@ -305,6 +305,16 @@ export class GugupayClient {
     return 0;
   };
 
+  withdrawMerchantBalance = async (txb: Transaction, merchantId: string) => {
+    txb.setGasBudget(10000000);
+    txb.moveCall({
+      target: `${this.PACKAGE_ID}::payment_service::withdraw_balance`,
+      arguments: [txb.object(this.SHARED_ID), txb.object(merchantId)],
+    });
+
+    return txb;
+  };
+
   getInvoice = async (invoiceId: string) => {
     return this.SuiClient.getObject({
       id: invoiceId,

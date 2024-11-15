@@ -141,10 +141,10 @@
       <img class="h-44 w-44" src={qrDataURL} alt="qr" />
     </div>
     <div class="flex gap-2">
-      {#if isExpired}
-        <div class="text-error text-xl">Invoice is expired</div>
-      {:else if invoice.isPaid}
+      {#if invoice.isPaid}
         <div class="text-success text-xl">Invoice is paid</div>
+      {:else if isExpired}
+        <div class="text-error text-xl">Invoice is expired</div>
       {:else}
         <div>Expires in</div>
         {#if countdownMin > 0}

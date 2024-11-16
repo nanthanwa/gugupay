@@ -2,6 +2,7 @@
 import { defineConfig } from "astro/config";
 import tailwind from "@astrojs/tailwind";
 import svelte from "@astrojs/svelte";
+import react from "@astrojs/react";
 
 import starlight from "@astrojs/starlight";
 import { githubLink, NAVIGATION_MENU } from "./src/utils/configs";
@@ -30,6 +31,7 @@ export default defineConfig({
       favicon: "favicon.ico",
     }),
     tailwind(),
+    react(),
   ],
   vite: {
     plugins: [],

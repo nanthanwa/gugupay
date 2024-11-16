@@ -1,0 +1,16 @@
+---
+import MainLayout from "@layouts/main.astro";
+import { MerSui } from "./MerSui.tsx";
+import "mersui/dist/assets/MerSuiProvider.css";
+---
+
+<MainLayout
+  title="Gugupay | Donate"
+  description={"This page create for Kos to donate me"}
+  isWallet={false}
+>
+  <div>
+    This page create for Kos to donate me
+    <MerSui client:only="react" />
+  </div>
+</MainLayout>
